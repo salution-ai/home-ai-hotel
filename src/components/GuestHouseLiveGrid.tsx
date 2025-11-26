@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room } from '../types';
 import { Menu, Clock, DollarSign, Plus, DoorOpen, Trash2, Layers, Building2, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
@@ -12,9 +12,7 @@ import { GuestHouseRoomDialog } from './GuestHouseRoomDialog';
 import { GuestHouseRevenueDialog } from './GuestHouseRevenueDialog';
 import { AddRoomDialog } from './AddRoomDialog';
 import { AddFloorDialog } from './AddFloorDialog';
-import { DeleteFloorDialog } from './DeleteFloorDialog';
-import { BusinessModelBadge } from './BusinessModelBadge';
-import { BackToModelSelectorButton } from './BackToModelSelectorButton';
+import { AddBuildingDialog } from './AddBuildingDialog';
 import { HelpDialog } from './HelpDialog';
 import { 
   AlertDialog, 
@@ -29,20 +27,38 @@ import {
 import { toast } from 'sonner';
 
 export function GuestHouseLiveGrid() {
-  const { user, hotel, rooms, deleteRoom, deleteFloor } = useApp();
+  const { user, hotel, rooms, deleteRoom, deleteFloor, deleteBuilding } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [addRoomOpen, setAddRoomOpen] = useState(false);
   const [addFloorOpen, setAddFloorOpen] = useState(false);
-  const [deleteFloorOpen, setDeleteFloorOpen] = useState(false);
+  const [addBuildingOpen, setAddBuildingOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'room' | 'floor', id: string, name: string, buildingId?: string, floor?: number } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'room' | 'floor' | 'building', id: string, name: string, buildingId?: string, floor?: number } | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [collapsedBuildings, setCollapsedBuildings] = useState<Set<string>>(new Set());
   const [collapsedFloors, setCollapsedFloors] = useState<Set<string>>(new Set());
   const [roomFilter, setRoomFilter] = useState<'all' | 'occupied' | 'vacant'>('all');
+  const fabMenuRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside FAB menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (fabMenuOpen && fabMenuRef.current && !fabMenuRef.current.contains(event.target as Node)) {
+        setFabMenuOpen(false);
+      }
+    };
+
+    if (fabMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [fabMenuOpen]);
 
   // Stats
   const totalRooms = rooms.length;
@@ -99,7 +115,11 @@ export function GuestHouseLiveGrid() {
       if (room.guest) {
         toast.error('Không thể xóa phòng đang có khách');
       } else {
-        setDeleteConfirm({ id: room.id, number: room.number });
+        setDeleteConfirm({ 
+          type: 'room',
+          id: room.id, 
+          name: `Phòng ${room.number}` 
+        });
       }
     }, 800); // 800ms long press
     setLongPressTimer(timer);
@@ -182,7 +202,7 @@ export function GuestHouseLiveGrid() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           {/* Top Row */}
           <div className="flex items-center justify-between mb-4">
@@ -204,15 +224,12 @@ export function GuestHouseLiveGrid() {
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
-                size="icon"
                 onClick={() => setHelpDialogOpen(true)}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 !w-[54px] !h-[54px] p-0"
                 title="Hướng dẫn sử dụng"
               >
-                <HelpCircle className="w-6 h-6" />
+                <HelpCircle className="!w-[40px] !h-[40px]" />
               </Button>
-              <BackToModelSelectorButton />
-              <BusinessModelBadge />
             </div>
           </div>
 
@@ -279,25 +296,60 @@ export function GuestHouseLiveGrid() {
       {/* Room Grid */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="space-y-6">
-          {hotel?.buildings && hotel.buildings.length > 0 ? (
-            // Group by buildings
-            hotel.buildings.sort((a, b) => a.order - b.order).map(building => {
-              const buildingRoomsData = roomsByBuilding[building.id];
-              if (!buildingRoomsData || Object.keys(buildingRoomsData).length === 0) return null;
+          {(() => {
+            // Get all buildings that have rooms, including ones not in hotel.buildings
+            const buildingsWithRooms = new Set(Object.keys(roomsByBuilding));
+            const allBuildings = [
+              ...(hotel?.buildings || []),
+              // Add buildings from rooms that aren't in hotel.buildings
+              ...Array.from(buildingsWithRooms)
+                .filter(buildingId => !hotel?.buildings?.some(b => b.id === buildingId))
+                .map((buildingId, index) => ({
+                  id: buildingId,
+                  name: buildingId === 'default' ? 'Mặc định' : 
+                        buildingId === 'building-1' ? 'Tòa chính' : 
+                        buildingId === 'building-2' ? 'Tòa B' : 
+                        buildingId.replace('building-', 'Tòa '),
+                  description: '',
+                  order: (hotel?.buildings?.length || 0) + index + 1
+                }))
+            ];
+            
+            return allBuildings.length > 0 ? (
+              allBuildings.sort((a, b) => {
+                // Sort by order if available, otherwise by id
+                if (a.order !== undefined && b.order !== undefined) {
+                  return a.order - b.order;
+                }
+                return a.id.localeCompare(b.id);
+              }).map(building => {
+                const buildingRoomsData = roomsByBuilding[building.id] || {};
+                // Show all buildings from hotel.buildings, even if they have no rooms yet
+                const hasRooms = buildingRoomsData && Object.keys(buildingRoomsData).length > 0;
+                const isInHotelBuildings = hotel?.buildings?.some(b => b.id === building.id);
+                
+                // Only filter out auto-created buildings that have no rooms
+                if (!hasRooms && !isInHotelBuildings) return null;
 
-              const buildingFloors = Object.keys(buildingRoomsData).map(Number).sort((a, b) => b - a);
-              const totalBuildingRooms = buildingFloors.reduce((sum, floor) => sum + buildingRoomsData[floor].length, 0);
+              const buildingFloors = hasRooms 
+                ? Object.keys(buildingRoomsData).map(Number).sort((a, b) => b - a)
+                : [];
+              const totalBuildingRooms = hasRooms
+                ? buildingFloors.reduce((sum, floor) => sum + buildingRoomsData[floor].length, 0)
+                : 0;
               const isCollapsed = collapsedBuildings.has(building.id);
 
               return (
                 <div key={building.id} className="space-y-4">
                   {/* Building Header */}
                   <div 
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-3 cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => toggleBuilding(building.id)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-3 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        onClick={() => toggleBuilding(building.id)}
+                      >
                         <Building2 className="w-5 h-5 text-white" />
                         <h2 className="text-white font-medium">{building.name}</h2>
                       </div>
@@ -305,11 +357,41 @@ export function GuestHouseLiveGrid() {
                         <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
                           {totalBuildingRooms} phòng
                         </Badge>
-                        {isCollapsed ? (
-                          <ChevronDown className="w-5 h-5 text-white" />
-                        ) : (
-                          <ChevronUp className="w-5 h-5 text-white" />
-                        )}
+                        
+                        {/* Delete Building Button */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const hasRooms = rooms.some(r => r.buildingId === building.id);
+                            if (hasRooms) {
+                              toast.error('Không thể xóa tòa nhà đang có phòng. Vui lòng xóa hoặc chuyển phòng sang tòa khác trước.');
+                              return;
+                            }
+                            setDeleteConfirm({ 
+                              type: 'building', 
+                              id: building.id,
+                              name: building.name,
+                              buildingId: building.id
+                            });
+                          }}
+                          className="text-white hover:text-red-200 hover:bg-white/20 h-8 w-8 p-0"
+                          title="Xóa tòa nhà"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => toggleBuilding(building.id)}
+                        >
+                          {isCollapsed ? (
+                            <ChevronDown className="w-5 h-5 text-white" />
+                          ) : (
+                            <ChevronUp className="w-5 h-5 text-white" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -317,7 +399,8 @@ export function GuestHouseLiveGrid() {
                   {/* Building Floors */}
                   {!isCollapsed && (
                     <div className="space-y-4">
-                      {buildingFloors.map(floor => {
+                      {hasRooms ? (
+                        buildingFloors.map(floor => {
                         const floorRooms = buildingRoomsData[floor];
                         if (!floorRooms || floorRooms.length === 0) return null;
 
@@ -473,13 +556,20 @@ export function GuestHouseLiveGrid() {
                             )}
                           </div>
                         );
-                      })}
+                      })
+                      ) : (
+                        <div className="bg-gray-50 rounded-lg p-8 text-center border border-gray-200">
+                          <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                          <p className="text-gray-500 font-medium">Chưa có phòng nào</p>
+                          <p className="text-sm text-gray-400 mt-1">Thêm tầng và phòng để bắt đầu</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
-            })
-          ) : (
+            }).filter(Boolean)
+            ) : (
             // Fallback: Simple floor grouping
             Object.keys(roomsByFloor).map(Number).sort((a, b) => b - a).map(floor => {
               const floorRooms = roomsByFloor[floor];
@@ -638,7 +728,8 @@ export function GuestHouseLiveGrid() {
                 </div>
               );
             })
-          )}
+            );
+          })()}
         </div>
 
         {/* Hint for delete */}
@@ -651,12 +742,22 @@ export function GuestHouseLiveGrid() {
 
       {/* FAB - Floating Action Button */}
       <div 
+        ref={fabMenuRef}
         className="fixed bottom-4 left-4 z-40"
-        onMouseLeave={() => setFabMenuOpen(false)}
       >
         {/* FAB Menu */}
         {fabMenuOpen && (
           <div className="mb-3 bg-white rounded-lg shadow-2xl border-2 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <button
+              onClick={() => {
+                setAddBuildingOpen(true);
+                setFabMenuOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition-colors w-full text-left border-b"
+            >
+              <Building2 className="w-5 h-5 text-purple-600" />
+              <span className="font-medium text-gray-900">Thêm tòa mới</span>
+            </button>
             <button
               onClick={() => {
                 setAddFloorOpen(true);
@@ -666,16 +767,6 @@ export function GuestHouseLiveGrid() {
             >
               <Layers className="w-5 h-5 text-blue-600" />
               <span className="font-medium text-gray-900">Thêm Tầng Mới</span>
-            </button>
-            <button
-              onClick={() => {
-                setDeleteFloorOpen(true);
-                setFabMenuOpen(false);
-              }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors w-full text-left border-b"
-            >
-              <Trash2 className="w-5 h-5 text-red-600" />
-              <span className="font-medium text-gray-900">Xóa Tầng</span>
             </button>
             <button
               onClick={() => {
@@ -738,19 +829,17 @@ export function GuestHouseLiveGrid() {
       <AddRoomDialog
         open={addRoomOpen}
         onClose={() => setAddRoomOpen(false)}
-        buildingId={hotel?.buildings[0]?.id || ''}
       />
 
       <AddFloorDialog
         open={addFloorOpen}
         onClose={() => setAddFloorOpen(false)}
-        buildingId={hotel?.buildings[0]?.id || ''}
       />
 
-      <DeleteFloorDialog
-        open={deleteFloorOpen}
-        onClose={() => setDeleteFloorOpen(false)}
-        buildingId={hotel?.buildings[0]?.id || ''}
+
+      <AddBuildingDialog
+        open={addBuildingOpen}
+        onClose={() => setAddBuildingOpen(false)}
       />
 
       <GuestHouseRevenueDialog
@@ -784,6 +873,11 @@ export function GuestHouseLiveGrid() {
                   Phòng sẽ bị xóa vĩnh viễn khỏi hệ thống.
                 </span>
               )}
+              {deleteConfirm?.type === 'building' && (
+                <span className="block mt-2 text-red-600">
+                  ⚠️ Tòa nhà sẽ bị xóa vĩnh viễn khỏi hệ thống. Hành động này không thể hoàn tác!
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -797,6 +891,9 @@ export function GuestHouseLiveGrid() {
                     deleteFloor(deleteConfirm.floor, deleteConfirm.buildingId);
                     toast.success(`Đã xóa ${deleteConfirm.name}`);
                   }
+                } else if (deleteConfirm.type === 'building') {
+                  deleteBuilding(deleteConfirm.id);
+                  toast.success(`Đã xóa ${deleteConfirm.name}`);
                 } else {
                   deleteRoom(deleteConfirm.id);
                   toast.success(`Đã xóa ${deleteConfirm.name}`);

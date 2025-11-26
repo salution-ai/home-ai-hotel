@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Room, PaymentMethod, IncidentalCharge } from '../types';
+import { Room, PaymentMethod, IncidentalCharge, RoomType, RoomStatus } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,7 +21,14 @@ import {
   LogOut,
   CheckCircle2,
   AlertCircle,
-  Trash2
+  Trash2,
+  Edit2,
+  Save,
+  X,
+  Layers,
+  Building2,
+  Bed,
+  DoorOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GuestHousePaymentDialog } from './GuestHousePaymentDialog';
@@ -34,9 +41,16 @@ interface GuestHouseRoomDialogProps {
 }
 
 export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHouseRoomDialogProps) {
-  const { updateRoom, user, deleteRoom } = useApp();
+  const { updateRoom, user, deleteRoom, hotel } = useApp();
   const [activeTab, setActiveTab] = useState<'info' | 'checkin'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  
+  // Room editing state (for empty rooms)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedRoomType, setEditedRoomType] = useState<Room['type']>(room.type);
+  const [editedPrice, setEditedPrice] = useState(room.price.toString());
+  const [editedHourlyRate, setEditedHourlyRate] = useState((room.hourlyRate || 0).toString());
+  const [editedStatus, setEditedStatus] = useState<Room['status']>(room.status);
   
   // Check-in form
   const [guestName, setGuestName] = useState('');
@@ -54,16 +68,33 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
         setGuestName(room.guest.name || '');
         setGuestPhone(room.guest.phone || '');
       } else {
-        setActiveTab('checkin');
+        setActiveTab('info');
         // Reset form for new check-in
         setGuestName('');
         setGuestPhone('');
       }
       
+      // Reset editing state and sync with room data
+      setIsEditing(false);
+      setEditedRoomType(room.type);
+      setEditedPrice(room.price.toString());
+      setEditedHourlyRate((room.hourlyRate || 0).toString());
+      setEditedStatus(room.status);
+      
       // Auto-calculate checkout based on rental type
+      if (!room.guest) {
+        updateCheckOutDate();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room, open]);
+  
+  useEffect(() => {
+    if (open && !room.guest) {
       updateCheckOutDate();
     }
-  }, [room, open, rentalType, hours, checkInDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rentalType, hours, checkInDate]);
 
   const updateCheckOutDate = () => {
     const checkIn = new Date(checkInDate);
@@ -120,7 +151,18 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       }
     };
     
-    updateRoom(updatedRoom);
+    updateRoom(room.id, {
+      status: 'occupied',
+      guest: {
+        name: guestName,
+        phone: guestPhone,
+        checkInDate: checkInDate,
+        checkOutDate: checkOutDate,
+        totalAmount: total,
+        isHourly: rentalType === 'hourly',
+        checkedInBy: user?.name
+      }
+    });
     toast.success(rentalType === 'hourly'
       ? `✅ Đã check-in phòng ${room.number} (${hours} giờ)` 
       : `✅ Đã check-in phòng ${room.number} (theo ngày)`
@@ -139,25 +181,19 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
   const completeCheckOut = (paymentMethod: PaymentMethod) => {
     if (!room.guest) return;
     
-    const updatedRoom: Room = {
-      ...room,
+    updateRoom(room.id, {
       status: 'vacant-dirty',
       guest: undefined
-    };
-    
-    updateRoom(updatedRoom);
+    });
     toast.success(`✅ Đã trả phòng ${room.number} và thanh toán`);
     setShowPaymentDialog(false);
     onClose();
   };
 
   const handleMarkClean = () => {
-    const updatedRoom: Room = {
-      ...room,
+    updateRoom(room.id, {
       status: 'vacant-clean'
-    };
-    
-    updateRoom(updatedRoom);
+    });
     toast.success(`Phòng ${room.number} đã sạch`);
     onClose();
   };
@@ -174,6 +210,39 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       onClose();
       if (onDelete) onDelete();
     }
+  };
+
+  const handleSaveRoomInfo = () => {
+    const price = parseFloat(editedPrice);
+    const hourlyRate = parseFloat(editedHourlyRate);
+
+    if (isNaN(price) || price <= 0) {
+      toast.error('Giá theo ngày phải là số dương');
+      return;
+    }
+
+    if (isNaN(hourlyRate) || hourlyRate < 0) {
+      toast.error('Giá theo giờ phải là số không âm');
+      return;
+    }
+
+    updateRoom(room.id, {
+      type: editedRoomType,
+      price: price,
+      hourlyRate: hourlyRate > 0 ? hourlyRate : undefined,
+      status: editedStatus,
+    });
+    setIsEditing(false);
+    toast.success(`Đã cập nhật thông tin phòng ${room.number}`);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    // Reset to original values
+    setEditedRoomType(room.type);
+    setEditedPrice(room.price.toString());
+    setEditedHourlyRate((room.hourlyRate || 0).toString());
+    setEditedStatus(room.status);
   };
 
   const getRoomStatusColor = () => {
@@ -296,21 +365,191 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                 </>
               ) : (
                 <>
-                  {/* Empty Room Info */}
-                  <Card className={`${getRoomStatusColor()} p-2 border`}>
-                    <div className="space-y-2">
+                  {/* Empty Room Info - Editable */}
+                  <Card className={`${getRoomStatusColor()} p-3 border`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-800">Thông tin phòng</h3>
+                      {!isEditing ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setIsEditing(true)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <Edit2 className="w-3 h-3 mr-1" />
+                          Sửa
+                        </Button>
+                      ) : (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleSaveRoomInfo}
+                            className="h-6 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            <Save className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
+                            className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Room Number - Read Only */}
+                      <div className="flex items-center gap-2">
+                        <DoorOpen className="w-4 h-4 text-gray-500" />
+                        <div className="flex-1">
+                          <Label className="text-[10px] text-gray-600">Số phòng</Label>
+                          <p className="text-sm font-bold text-gray-800">{room.number}</p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Room Type */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                            <Bed className="w-3 h-3" />
+                            Loại phòng
+                          </Label>
+                          <Select value={editedRoomType} onValueChange={(value) => setEditedRoomType(value as RoomType)}>
+                            <SelectTrigger className="text-xs h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Single">Single</SelectItem>
+                              <SelectItem value="Double">Double</SelectItem>
+                              <SelectItem value="Deluxe">Deluxe</SelectItem>
+                              <SelectItem value="Suite">Suite</SelectItem>
+                              <SelectItem value="Family">Family</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Bed className="w-4 h-4 text-gray-500" />
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-gray-600">Loại phòng</Label>
+                            <p className="text-sm font-semibold text-gray-800">{room.type}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Floor - Read Only */}
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-gray-500" />
+                        <div className="flex-1">
+                          <Label className="text-[10px] text-gray-600">Tầng</Label>
+                          <p className="text-sm font-semibold text-gray-800">Tầng {room.floor}</p>
+                        </div>
+                      </div>
+
+                      {/* Building - Read Only */}
+                      {hotel?.buildings && (
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-gray-500" />
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-gray-600">Tòa nhà</Label>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {hotel.buildings.find(b => b.id === room.buildingId)?.name || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600">Trạng thái</Label>
+                          <Select value={editedStatus} onValueChange={(value) => setEditedStatus(value as RoomStatus)}>
+                            <SelectTrigger className="text-xs h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="vacant-clean">Trống - Sạch</SelectItem>
+                              <SelectItem value="vacant-dirty">Trống - Cần dọn</SelectItem>
+                              <SelectItem value="out-of-order">Không sử dụng</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <Label className="text-[10px] text-gray-600">Trạng thái</Label>
+                            <Badge variant="outline" className="text-[10px] mt-0.5">
+                              {room.status === 'vacant-clean' ? 'Trống - Sạch' : 
+                               room.status === 'vacant-dirty' ? 'Trống - Cần dọn' : 
+                               room.status === 'out-of-order' ? 'Không sử dụng' : room.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {/* Hourly Rate */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Giá theo giờ (₫/giờ)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={editedHourlyRate}
+                            onChange={(e) => setEditedHourlyRate(e.target.value)}
+                            className="text-xs h-8"
+                            min="0"
+                            placeholder="0"
+                          />
+                        </div>
+                      ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-700">Giá theo giờ</span>
+                          <span className="text-xs text-gray-700 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Giá theo giờ
+                          </span>
                         <span className="text-sm font-bold text-blue-600">
                           {formatCurrency(room.hourlyRate || 0)}₫/giờ
                         </span>
                       </div>
+                      )}
+
+                      {/* Daily Price */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Giá theo ngày (₫/ngày)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={editedPrice}
+                            onChange={(e) => setEditedPrice(e.target.value)}
+                            className="text-xs h-8"
+                            min="0"
+                            placeholder="0"
+                          />
+                        </div>
+                      ) : (
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-700">Giá theo ngày</span>
+                          <span className="text-xs text-gray-700 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Giá theo ngày
+                          </span>
                         <span className="text-sm font-bold text-green-600">
                           {formatCurrency(room.price)}₫/ngày
                         </span>
                       </div>
+                      )}
                     </div>
                   </Card>
 

@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room } from '../types';
-import { Layers, Plus } from 'lucide-react';
+import { Layers, Plus, Building2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 
 interface AddFloorDialogProps {
@@ -17,25 +18,40 @@ interface AddFloorDialogProps {
 }
 
 export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialogProps) {
-  const { addRoom, rooms } = useApp();
+  const { addRoom, rooms, hotel } = useApp();
+  const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || '');
   const [floorNumber, setFloorNumber] = useState<number>(1);
   const [floorName, setFloorName] = useState<string>('');
   const [numberOfRooms, setNumberOfRooms] = useState<number>(10);
 
-  // Calculate next available floor number
+  // Set default building when dialog opens
   useEffect(() => {
-    if (open) {
-      const floors = rooms.map(r => r.floor);
-      const maxFloor = floors.length > 0 ? Math.max(...floors) : 0;
+    if (open && hotel?.buildings && hotel.buildings.length > 0 && !selectedBuildingId) {
+      setSelectedBuildingId(buildingId || hotel.buildings[0].id);
+    }
+  }, [open, hotel?.buildings, buildingId, selectedBuildingId]);
+
+  // Calculate next available floor number for selected building
+  useEffect(() => {
+    if (open && selectedBuildingId) {
+      const buildingFloors = rooms
+        .filter(r => (r.buildingId || 'default') === selectedBuildingId)
+        .map(r => r.floor);
+      const maxFloor = buildingFloors.length > 0 ? Math.max(...buildingFloors) : 0;
       const nextFloor = maxFloor + 1;
       setFloorNumber(nextFloor);
       setFloorName(`Tầng ${nextFloor}`);
       setNumberOfRooms(10);
     }
-  }, [open, rooms]);
+  }, [open, rooms, selectedBuildingId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedBuildingId) {
+      toast.error('Vui lòng chọn tòa nhà');
+      return;
+    }
 
     if (!floorNumber || floorNumber < 0) {
       toast.error('Vui lòng nhập số tầng hợp lệ');
@@ -47,8 +63,11 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       return;
     }
 
-    // Check if floor already exists
-    const floorExists = rooms.some(r => r.floor === floorNumber && r.buildingId === buildingId);
+    // Check if floor already exists in the selected building
+    const floorExists = rooms.some(r => 
+      r.floor === floorNumber && 
+      (r.buildingId || 'default') === selectedBuildingId
+    );
     if (floorExists) {
       toast.error(`Tầng ${floorNumber} đã tồn tại. Vui lòng chọn số tầng khác.`);
       return;
@@ -63,7 +82,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
         id: `room-${Date.now()}-${i}`,
         number: roomNumber,
         floor: floorNumber,
-        buildingId: buildingId || 'default',
+        buildingId: selectedBuildingId === 'default' ? undefined : selectedBuildingId,
         type: 'Single',
         price: 300000, // Default price
         hourlyRate: 50000, // Default hourly rate
@@ -73,7 +92,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       newRooms.push(newRoom);
     }
 
-    // Add all rooms to the context
+    // Add all rooms to the context at once
     newRooms.forEach(room => addRoom(room));
 
     toast.success(`✅ Đã tạo tầng ${floorNumber} với ${numberOfRooms} phòng`, {
@@ -85,7 +104,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="w-6 h-6 text-blue-600" />
@@ -97,6 +116,28 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Building Selection */}
+          {!buildingId && (
+            <div className="space-y-2">
+              <Label htmlFor="building-select" className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Tòa nhà <span className="text-red-500">*</span>
+              </Label>
+              <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn tòa nhà..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {hotel?.buildings?.map(building => (
+                    <SelectItem key={building.id} value={building.id}>
+                      {building.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Floor Number */}
           <div className="space-y-2">
             <Label htmlFor="floorNumber" className="text-base">

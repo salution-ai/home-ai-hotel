@@ -1,7 +1,5 @@
 'use client'
 
-import { BusinessModelBadge } from './BusinessModelBadge';
-import { BuildingManagement } from './BuildingManagement';
 import { InvoiceSettingsDialog } from './InvoiceSettingsDialog';
 import { InvoiceHistoryDialog } from './InvoiceHistoryDialog';
 import { Home, LogOut, UserPlus, Users, CreditCard, Building2, Settings, Trash2, FileText, History } from 'lucide-react';
@@ -30,7 +28,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showHotelConfig, setShowHotelConfig] = useState(false);
   const [showBankAccount, setShowBankAccount] = useState(false);
-  const [showBuildingManagement, setShowBuildingManagement] = useState(false);
   const [showInvoiceSettings, setShowInvoiceSettings] = useState(false);
   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -63,13 +60,13 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-80">
+      <SheetContent side="left" className="w-80 flex flex-col">
         <SheetHeader>
           <SheetTitle>{hotel?.name}</SheetTitle>
           <SheetDescription>Menu chính</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-2">
+        <div className="flex-1 overflow-y-auto mt-6 space-y-2 pb-4">
           {/* Always visible */}
           <Button variant="ghost" className="w-full justify-start" onClick={onClose}>
             <Home className="w-5 h-5 mr-3" />
@@ -105,17 +102,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 Tài khoản Ngân hàng
               </Button>
 
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowBuildingManagement(true);
-                  onClose();
-                }}
-              >
-                <Settings className="w-5 h-5 mr-3" />
-                Quản lý Tòa nhà & Phòng
-              </Button>
 
               <Button 
                 variant="ghost" 
@@ -202,21 +188,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             <LogOut className="w-5 h-5 mr-3" />
             Đăng xuất
           </Button>
-        </div>
-
-        <div className="absolute bottom-6 left-6 right-6 space-y-3">
-          <div className="flex justify-center">
-            <BusinessModelBadge />
-          </div>
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-900 mb-1">Đăng nhập với</p>
-            <p className="text-sm text-blue-900">{user?.email}</p>
-            <p className="text-xs text-blue-700 mt-2">
-              {user?.role === 'admin' && 'Quản trị viên'}
-              {user?.role === 'receptionist' && 'Lễ tân'}
-              {user?.role === 'housekeeping' && 'Buồng phòng'}
-            </p>
-          </div>
         </div>
 
       </SheetContent>
@@ -314,8 +285,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       {/* Bank Account Management Dialog */}
       <BankAccountManagement open={showBankAccount} onClose={() => setShowBankAccount(false)} />
       
-      {/* Building Management Dialog */}
-      <BuildingManagement open={showBuildingManagement} onClose={() => setShowBuildingManagement(false)} />
 
       {/* Reset Confirmation Dialog */}
       <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
@@ -360,7 +329,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <InvoiceSettingsDialog open={showInvoiceSettings} onClose={() => setShowInvoiceSettings(false)} />
 
       {/* Invoice History Dialog */}
-      <InvoiceHistoryDialog open={showInvoiceHistory} onClose={() => setShowInvoiceHistory(false)} />
+      <InvoiceHistoryDialog open={showInvoiceHistory} onOpenChange={(open) => setShowInvoiceHistory(open)} />
     </Sheet>
   );
 }

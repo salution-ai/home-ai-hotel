@@ -304,7 +304,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   };
 
   const addRoom = (room: Room) => {
-    setRooms([...rooms, room]);
+    setRooms(prev => [...prev, room]);
   };
 
   const deleteRoom = (roomId: string) => {

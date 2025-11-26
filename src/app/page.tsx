@@ -1,24 +1,29 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { BusinessModelSelector } from '@/components/BusinessModelSelector'
-import { BusinessModel } from '@/types'
+import { AppProvider, useApp } from '@/contexts/AppContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
+import { LoginScreen } from '@/components/LoginScreen'
+import { GuestHouseLiveGrid } from '@/components/GuestHouseLiveGrid'
+import { Toaster } from '@/components/ui/sonner'
 
-export default function HomePage() {
-  const router = useRouter()
+function GuestHouseAppContent() {
+  const { user } = useApp()
 
-  const handleSelect = (model: BusinessModel) => {
-    if (model === 'hotel') {
-      router.push('/hotel')
-    } else if (model === 'guesthouse') {
-      router.push('/guesthouse')
-    } else if (model === 'boarding-house') {
-      router.push('/boarding-house')
-    }
+  if (!user) {
+    return <LoginScreen />
   }
 
+  return <GuestHouseLiveGrid />
+}
+
+export default function HomePage() {
   return (
-    <BusinessModelSelector onSelect={handleSelect} />
+    <AppProvider defaultBusinessModel="guesthouse">
+      <LanguageProvider>
+        <GuestHouseAppContent />
+        <Toaster position="top-right" richColors />
+      </LanguageProvider>
+    </AppProvider>
   )
 }
 

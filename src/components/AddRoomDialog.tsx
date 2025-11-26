@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
+import { RoomType } from '../types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Home, DoorOpen, DollarSign, Clock, Layers } from 'lucide-react';
+import { Home, DoorOpen, DollarSign, Clock, Layers, Bed } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { MoneyInput } from './MoneyInput';
@@ -24,6 +25,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const [roomNumber, setRoomNumber] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || defaultBuildingId || '');
   const [selectedFloor, setSelectedFloor] = useState('1');
+  const [roomType, setRoomType] = useState<RoomType>('Single');
   const [price, setPrice] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const isGuesthouse = businessModel === 'guesthouse';
@@ -38,6 +40,11 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
 
     if (!selectedBuildingId) {
       toast.error('Vui lòng chọn khu trọ');
+      return;
+    }
+
+    if (!selectedFloor || availableFloors.length === 0 || !availableFloors.includes(parseInt(selectedFloor))) {
+      toast.error('Vui lòng chọn tầng hợp lệ. Nếu chưa có tầng, vui lòng tạo tầng mới trước.');
       return;
     }
 
@@ -56,7 +63,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       number: roomNumber.trim(),
       floor: parseInt(selectedFloor),
       buildingId: selectedBuildingId,
-      type: 'Single' as const,
+      type: roomType,
       price: parseFloat(price),
       hourlyRate: isGuesthouse ? parseFloat(hourlyRate) : undefined,
       status: 'vacant-clean' as const,
@@ -68,6 +75,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     // Reset form
     setRoomNumber('');
     setSelectedFloor('1');
+    setRoomType('Single');
     setPrice('');
     setHourlyRate('');
     if (!defaultBuildingId && !buildingId) {
@@ -79,6 +87,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const handleClose = () => {
     setRoomNumber('');
     setSelectedFloor('1');
+    setRoomType('Single');
     setPrice('');
     setHourlyRate('');
     if (!defaultBuildingId && !buildingId) {
@@ -98,6 +107,41 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     }
   }, [buildingId, defaultBuildingId, hotel?.buildings]);
 
+  // Auto-fill room number based on highest existing room number in selected building
+  useEffect(() => {
+    if (open && selectedBuildingId && selectedFloor && !roomNumber) {
+      // Get all rooms in the selected building
+      const buildingRooms = rooms.filter(
+        room => (room.buildingId || 'default') === (selectedBuildingId === 'default' ? 'default' : selectedBuildingId)
+      );
+
+      if (buildingRooms.length > 0) {
+        // Extract numeric values from room numbers
+        const numericValues = buildingRooms
+          .map(room => {
+            // Try to extract numeric part from room number (e.g., "210" from "210", "101" from "101")
+            const match = room.number.match(/\d+/);
+            return match ? parseInt(match[0], 10) : null;
+          })
+          .filter((val): val is number => val !== null);
+
+        if (numericValues.length > 0) {
+          const maxNumber = Math.max(...numericValues);
+          const nextNumber = (maxNumber + 1).toString();
+          setRoomNumber(nextNumber);
+        } else {
+          // If no numeric room numbers found, use floor number format
+          const floorNum = parseInt(selectedFloor, 10);
+          setRoomNumber(`${floorNum}01`);
+        }
+      } else {
+        // If no rooms exist in building, use floor number format: floor + "0" + "1"
+        const floorNum = parseInt(selectedFloor, 10);
+        setRoomNumber(`${floorNum}01`);
+      }
+    }
+  }, [open, selectedBuildingId, selectedFloor, rooms]);
+
   // Get available floors for the selected building
   const availableFloors = rooms
     .filter(room => room.buildingId === selectedBuildingId)
@@ -105,9 +149,22 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     .filter((floor, index, self) => self.indexOf(floor) === index)
     .sort((a, b) => b - a); // Sort descending
 
+  // Auto-select first available floor when building changes
+  useEffect(() => {
+    if (open && selectedBuildingId && availableFloors.length > 0) {
+      // If current selected floor is not in available floors, select the first one
+      if (!availableFloors.includes(parseInt(selectedFloor))) {
+        setSelectedFloor(availableFloors[0].toString());
+      }
+    } else if (open && selectedBuildingId && availableFloors.length === 0) {
+      // If no floors exist, clear the selection
+      setSelectedFloor('');
+    }
+  }, [open, selectedBuildingId, availableFloors]);
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <DoorOpen className="w-6 h-6 text-green-600" />
@@ -166,29 +223,58 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               <Layers className="w-4 h-4" />
               Tầng <span className="text-red-500">*</span>
             </Label>
-            <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+            {availableFloors.length > 0 ? (
+              <>
+                <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn tầng..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableFloors.map(floor => (
+                      <SelectItem key={floor} value={floor.toString()}>
+                        Tầng {floor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Chọn tầng hiện có. Để tạo tầng mới, sử dụng chức năng "Thêm Tầng"
+                </p>
+              </>
+            ) : (
+              <>
+                <Select disabled>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chưa có tầng nào" />
+                  </SelectTrigger>
+                </Select>
+                <p className="text-xs text-amber-600">
+                  ⚠️ Chưa có tầng nào trong tòa nhà này. Vui lòng tạo tầng mới trước.
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Room Type */}
+          <div className="space-y-2">
+            <Label htmlFor="room-type" className="flex items-center gap-2">
+              <Bed className="w-4 h-4" />
+              Loại Phòng <span className="text-red-500">*</span>
+            </Label>
+            <Select value={roomType} onValueChange={(value) => setRoomType(value as RoomType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Chọn tầng..." />
+                <SelectValue placeholder="Chọn loại phòng..." />
               </SelectTrigger>
               <SelectContent>
-                {/* Show existing floors first */}
-                {availableFloors.map(floor => (
-                  <SelectItem key={floor} value={floor.toString()}>
-                    Tầng {floor}
-                  </SelectItem>
-                ))}
-                {/* Always allow creating new floors 1-20 */}
-                {Array.from({ length: 20 }, (_, i) => i + 1)
-                  .filter(floor => !availableFloors.includes(floor))
-                  .map(floor => (
-                    <SelectItem key={floor} value={floor.toString()}>
-                      Tầng {floor} <span className="text-gray-500 text-xs">(mới)</span>
-                    </SelectItem>
-                  ))}
+                <SelectItem value="Single">Single</SelectItem>
+                <SelectItem value="Double">Double</SelectItem>
+                <SelectItem value="Deluxe">Deluxe</SelectItem>
+                <SelectItem value="Suite">Suite</SelectItem>
+                <SelectItem value="Family">Family</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              Chọn tầng hiện có hoặc tạo tầng mới
+              Chọn loại phòng phù hợp
             </p>
           </div>
 

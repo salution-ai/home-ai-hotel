@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room } from '../types';
-import { Layers, Trash2, AlertTriangle } from 'lucide-react';
+import { Layers, Trash2, AlertTriangle, Building2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
@@ -24,27 +24,43 @@ interface DeleteFloorDialogProps {
 }
 
 export function DeleteFloorDialog({ open, onClose, buildingId = '' }: DeleteFloorDialogProps) {
-  const { rooms, deleteFloor } = useApp();
+  const { rooms, deleteFloor, hotel } = useApp();
+  const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || '');
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
 
-  // Get available floors in the building
+  // Set default building when dialog opens
+  useEffect(() => {
+    if (open && hotel?.buildings && hotel.buildings.length > 0 && !selectedBuildingId) {
+      setSelectedBuildingId(buildingId || hotel.buildings[0].id);
+    }
+  }, [open, hotel?.buildings, buildingId, selectedBuildingId]);
+
+  // Reset selected floor when building changes
+  useEffect(() => {
+    if (selectedBuildingId) {
+      setSelectedFloor(null);
+    }
+  }, [selectedBuildingId]);
+
+  // Get available floors in the selected building
   const availableFloors = useMemo(() => {
+    if (!selectedBuildingId) return [];
     const floors = rooms
-      .filter(r => !buildingId || r.buildingId === buildingId)
+      .filter(r => (r.buildingId || 'default') === selectedBuildingId)
       .map(r => r.floor);
     
     // Get unique floors and sort descending
     return Array.from(new Set(floors)).sort((a, b) => b - a);
-  }, [rooms, buildingId]);
+  }, [rooms, selectedBuildingId]);
 
-  // Get rooms on selected floor
+  // Get rooms on selected floor in the selected building
   const floorRooms = useMemo(() => {
-    if (selectedFloor === null) return [];
+    if (selectedFloor === null || !selectedBuildingId) return [];
     return rooms.filter(r => 
       r.floor === selectedFloor && 
-      (!buildingId || r.buildingId === buildingId)
+      (r.buildingId || 'default') === selectedBuildingId
     );
-  }, [rooms, selectedFloor, buildingId]);
+  }, [rooms, selectedFloor, selectedBuildingId]);
 
   // Count occupied rooms
   const occupiedRooms = useMemo(() => {
@@ -66,13 +82,18 @@ export function DeleteFloorDialog({ open, onClose, buildingId = '' }: DeleteFloo
       return;
     }
 
+    if (!selectedBuildingId) {
+      toast.error('Vui lòng chọn tòa nhà');
+      return;
+    }
+
     if (!canDelete) {
       toast.error('Không thể xóa tầng đang có khách/người thuê');
       return;
     }
 
     // Delete all rooms on this floor
-    deleteFloor(selectedFloor, buildingId);
+    deleteFloor(selectedFloor, selectedBuildingId || buildingId);
 
     toast.success(`✅ Đã xóa tầng ${selectedFloor}`, {
       description: `${floorRooms.length} phòng đã được xóa`
@@ -95,6 +116,28 @@ export function DeleteFloorDialog({ open, onClose, buildingId = '' }: DeleteFloo
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Building Selection */}
+          {!buildingId && (
+            <div className="space-y-2">
+              <Label htmlFor="building-select" className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Tòa nhà <span className="text-red-500">*</span>
+              </Label>
+              <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
+                <SelectTrigger id="building-select">
+                  <SelectValue placeholder="Chọn tòa nhà..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {hotel?.buildings?.map(building => (
+                    <SelectItem key={building.id} value={building.id}>
+                      {building.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Floor Selection */}
           <div className="space-y-2">
             <Label htmlFor="floor-select" className="text-base">
@@ -104,15 +147,16 @@ export function DeleteFloorDialog({ open, onClose, buildingId = '' }: DeleteFloo
               <Select
                 value={selectedFloor?.toString() || ''}
                 onValueChange={(value) => setSelectedFloor(Number(value))}
+                disabled={!selectedBuildingId}
               >
                 <SelectTrigger id="floor-select" className="text-lg">
-                  <SelectValue placeholder="Chọn tầng..." />
+                  <SelectValue placeholder={selectedBuildingId ? "Chọn tầng..." : "Chọn tòa nhà trước"} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableFloors.map(floor => {
                     const roomsOnFloor = rooms.filter(r => 
                       r.floor === floor && 
-                      (!buildingId || r.buildingId === buildingId)
+                      (r.buildingId || 'default') === selectedBuildingId
                     );
                     const occupiedCount = roomsOnFloor.filter(r => r.guest || r.tenant).length;
                     
