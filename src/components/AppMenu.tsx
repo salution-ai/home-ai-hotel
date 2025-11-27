@@ -62,7 +62,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-80 flex flex-col">
+      <SheetContent side="left" className="w-[85vw] sm:w-80 flex flex-col">
         <SheetHeader>
           <SheetTitle>{hotel?.name}</SheetTitle>
           <SheetDescription>{t('menu.main')}</SheetDescription>

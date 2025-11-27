@@ -270,7 +270,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
   return (
     <>
       <Dialog open={open && !showPaymentDialog} onOpenChange={onClose}>
-        <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-2">
+        <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-3 sm:p-4 mx-2 sm:mx-4">
           <DialogHeader className="pb-1 space-y-0">
             <DialogTitle className="text-lg font-bold">Phòng {room.number} - {room.type}</DialogTitle>
             <DialogDescription className="text-[10px]">

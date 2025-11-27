@@ -1,10 +1,16 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ThemeProvider } from 'next-themes'
 
 export const metadata: Metadata = {
   title: 'Hotel Management System',
   description: 'Hotel Management System - Manage your hotel, guesthouse, or boarding house',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({

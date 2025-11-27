@@ -181,8 +181,8 @@ export function GuestHousePaymentDialog({
             {
               description: `${t('payment.serviceDescription')} ${room.number} - ${room.type}`,
               quantity: room.guest?.isHourly 
-                ? Math.ceil((new Date(room.guest.checkOutDate || '').getTime() - new Date(room.guest.checkInDate || '').getTime()) / (1000 * 60 * 60))
-                : Math.ceil((new Date(room.guest.checkOutDate || '').getTime() - new Date(room.guest.checkInDate || '').getTime()) / (1000 * 60 * 60 * 24)),
+                ? Math.ceil((new Date(room.guest?.checkOutDate || '').getTime() - new Date(room.guest?.checkInDate || '').getTime()) / (1000 * 60 * 60))
+                : Math.ceil((new Date(room.guest?.checkOutDate || '').getTime() - new Date(room.guest?.checkInDate || '').getTime()) / (1000 * 60 * 60 * 24)),
               unitPrice: room.guest?.isHourly ? (room.hourlyRate || 0) : room.price,
               unit: room.guest?.isHourly ? t('room.hours').slice(0, -1) : t('room.daily').toLowerCase(),
               amount: getRoomAmount()
@@ -273,38 +273,38 @@ export function GuestHousePaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto mx-2 sm:mx-4 p-3 sm:p-6">
         {step === 'select' ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
                 {t('payment.selectMethodDescription')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               {/* Quick Summary */}
-              <Card className="p-4 bg-blue-50 border-blue-200">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">Phòng {room.number} - {room.type}</p>
-                    <p className="text-lg font-semibold">{room.guest?.name}</p>
+              <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200">
+                <div className="flex justify-between items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Phòng {room.number} - {room.type}</p>
+                    <p className="text-base sm:text-lg font-semibold truncate">{room.guest?.name}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">{t('payment.totalAmount')}</p>
-                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(amount)}₫</p>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs sm:text-sm text-gray-600">{t('payment.totalAmount')}</p>
+                    <p className="text-xl sm:text-3xl font-bold text-blue-600">{formatCurrency(amount)}₫</p>
                   </div>
                 </div>
               </Card>
 
               {/* Payment Method Selection */}
               <div className="space-y-2">
-                <label className="text-base font-semibold text-gray-700">
+                <label className="text-sm sm:text-base font-semibold text-gray-700">
                   {t('payment.method')}
                 </label>
                 <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
-                  <SelectTrigger className="text-base py-6">
+                  <SelectTrigger className="text-sm sm:text-base py-4 sm:py-6">
                     <div className="flex items-center gap-2">
                       {getPaymentMethodIcon(paymentMethod)}
                       <SelectValue />
@@ -348,19 +348,19 @@ export function GuestHousePaymentDialog({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   onClick={onClose}
-                  className="flex-1 text-base py-6"
+                  className="flex-1 text-sm sm:text-base py-4 sm:py-6"
                 >
                   {t('delete.cancel')}
                 </Button>
                 <Button 
                   onClick={handleViewReceipt}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-base py-6"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
                 >
-                  <Receipt className="w-5 h-5 mr-2" />
+                  <Receipt className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                   {t('payment.viewReceipt')}
                 </Button>
               </div>
@@ -369,8 +369,8 @@ export function GuestHousePaymentDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
                 {t('payment.receiptDescription')}
               </DialogDescription>
             </DialogHeader>
@@ -618,37 +618,38 @@ export function GuestHousePaymentDialog({
               </Card>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   onClick={() => setStep('select')}
-                  className="flex-1 text-base py-6"
+                  className="flex-1 text-sm sm:text-base py-4 sm:py-6"
                   disabled={creatingInvoice}
                 >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  {t('payment.back')}
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('payment.back')}</span>
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={handlePrintReceipt}
-                  className="text-base py-6"
+                  className="text-sm sm:text-base py-4 sm:py-6 px-3 sm:px-4"
                   disabled={creatingInvoice}
                 >
-                  <Printer className="w-5 h-5" />
+                  <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
                 <Button 
                   onClick={completePayment}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-base py-6"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
                   disabled={creatingInvoice}
                 >
                   {creatingInvoice ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      {t('payment.processing')}
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 animate-spin" />
+                      <span className="hidden sm:inline">{t('payment.processing')}</span>
+                      <span className="sm:hidden">{t('payment.processing')}</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-5 h-5 mr-2" />
+                      <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                       {t('payment.confirmPayment')}
                     </>
                   )}

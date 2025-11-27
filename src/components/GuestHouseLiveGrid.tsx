@@ -212,33 +212,33 @@ export function GuestHouseLiveGrid() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Top Row */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setMenuOpen(true)}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 flex-shrink-0"
               >
-                <Menu className="w-8 h-8" />
+                <Menu className="w-6 h-6 sm:w-8 sm:h-8" />
               </Button>
-              <div>
-                <p className="text-base font-semibold text-white/90">{t('dashboard.manage')}</p>
-                <p className="text-2xl text-white font-bold">{user?.name}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-base font-semibold text-white/90 truncate">{t('dashboard.manage')}</p>
+                <p className="text-lg sm:text-2xl text-white font-bold truncate">{user?.name}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="text-white hover:bg-white/20 !w-[54px] !h-[54px] p-0"
+                    className="text-white hover:bg-white/20 !w-[44px] !h-[44px] sm:!w-[54px] sm:!h-[54px] p-0"
                     title={t('header.language')}
                   >
-                    <Globe className="!w-[40px] !h-[40px]" />
+                    <Globe className="!w-[32px] !h-[32px] sm:!w-[40px] sm:!h-[40px]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -258,68 +258,68 @@ export function GuestHouseLiveGrid() {
               <Button
                 variant="ghost"
                 onClick={() => setHelpDialogOpen(true)}
-                className="text-white hover:bg-white/20 !w-[54px] !h-[54px] p-0"
+                className="text-white hover:bg-white/20 !w-[44px] !h-[44px] sm:!w-[54px] sm:!h-[54px] p-0"
                 title={t('dashboard.helpTitle')}
               >
-                <HelpCircle className="!w-[40px] !h-[40px]" />
+                <HelpCircle className="!w-[32px] !h-[32px] sm:!w-[40px] sm:!h-[40px]" />
               </Button>
             </div>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <Card 
-              className={`bg-white/95 backdrop-blur border-0 p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+              className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setRoomFilter('all')}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg text-gray-600">{t('dashboard.totalRooms')}</p>
-                  <p className="text-4xl font-bold text-blue-600">{totalRooms}</p>
-                  {roomFilter === 'all' && <p className="text-xs text-blue-600 mt-1">✓ {t('dashboard.showingAll')}</p>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.totalRooms')}</p>
+                  <p className="text-2xl sm:text-4xl font-bold text-blue-600">{totalRooms}</p>
+                  {roomFilter === 'all' && <p className="text-[10px] sm:text-xs text-blue-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.showingAll')}</p>}
                 </div>
-                <DoorOpen className="w-12 h-12 text-blue-400" />
+                <DoorOpen className="w-8 h-8 sm:w-12 sm:h-12 text-blue-400 flex-shrink-0 ml-1" />
               </div>
             </Card>
 
             <Card 
-              className={`bg-white/95 backdrop-blur border-0 p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'occupied' ? 'ring-2 ring-green-500' : ''}`}
+              className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'occupied' ? 'ring-2 ring-green-500' : ''}`}
               onClick={() => setRoomFilter('occupied')}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg text-gray-600">{t('dashboard.occupied')}</p>
-                  <p className="text-4xl font-bold text-green-600">{occupiedRooms}</p>
-                  <p className="text-sm text-gray-500">{t('dashboard.hours')}: {hourlyRooms} | {t('dashboard.days')}: {dailyRooms}</p>
-                  {roomFilter === 'occupied' && <p className="text-xs text-green-600 mt-1">✓ {t('dashboard.filteringOccupied')}</p>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.occupied')}</p>
+                  <p className="text-2xl sm:text-4xl font-bold text-green-600">{occupiedRooms}</p>
+                  <p className="text-[10px] sm:text-sm text-gray-500 truncate">{t('dashboard.hours')}: {hourlyRooms} | {t('dashboard.days')}: {dailyRooms}</p>
+                  {roomFilter === 'occupied' && <p className="text-[10px] sm:text-xs text-green-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringOccupied')}</p>}
                 </div>
               </div>
             </Card>
 
             <Card 
-              className={`bg-white/95 backdrop-blur border-0 p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'vacant' ? 'ring-2 ring-gray-500' : ''}`}
+              className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'vacant' ? 'ring-2 ring-gray-500' : ''}`}
               onClick={() => setRoomFilter('vacant')}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg text-gray-600">{t('dashboard.vacant')}</p>
-                  <p className="text-4xl font-bold text-gray-600">{vacantRooms}</p>
-                  {roomFilter === 'vacant' && <p className="text-xs text-gray-600 mt-1">✓ {t('dashboard.filteringVacant')}</p>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.vacant')}</p>
+                  <p className="text-2xl sm:text-4xl font-bold text-gray-600">{vacantRooms}</p>
+                  {roomFilter === 'vacant' && <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringVacant')}</p>}
                 </div>
               </div>
             </Card>
 
             <Card 
-              className="bg-white/95 backdrop-blur border-0 p-4 cursor-pointer hover:shadow-lg transition-shadow active:scale-95"
+              className="bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow active:scale-95"
               onClick={() => setRevenueDialogOpen(true)}
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-lg text-gray-600">{t('dashboard.revenueToday')}</p>
-                  <p className="text-3xl font-bold text-blue-600">{formatCurrency(todayRevenue)}₫</p>
-                  <p className="text-xs text-gray-500 mt-1">👆 {t('dashboard.clickToViewDetails')}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.revenueToday')}</p>
+                  <p className="text-xl sm:text-3xl font-bold text-blue-600 truncate">{formatCurrency(todayRevenue)}₫</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">👆 {t('dashboard.clickToViewDetails')}</p>
                 </div>
-                <DollarSign className="w-12 h-12 text-green-400" />
+                <DollarSign className="w-8 h-8 sm:w-12 sm:h-12 text-green-400 flex-shrink-0 ml-1" />
               </div>
             </Card>
           </div>
@@ -327,7 +327,7 @@ export function GuestHouseLiveGrid() {
       </div>
 
       {/* Room Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="space-y-6">
           {(() => {
             // Get all buildings that have rooms, including ones not in hotel.buildings
@@ -376,18 +376,18 @@ export function GuestHouseLiveGrid() {
                 <div key={building.id} className="space-y-4">
                   {/* Building Header */}
                   <div 
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-3 hover:shadow-lg transition-shadow"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-2.5 sm:p-3 hover:shadow-lg transition-shadow"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div 
-                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        className="flex items-center gap-2 sm:gap-3 cursor-pointer flex-1 min-w-0"
                         onClick={() => toggleBuilding(building.id)}
                       >
-                        <Building2 className="w-5 h-5 text-white" />
-                        <h2 className="text-white font-medium">{building.name}</h2>
+                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
+                        <h2 className="text-white font-medium text-sm sm:text-base truncate">{building.name}</h2>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+                        <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
                           {totalBuildingRooms} {t('building.rooms')}
                         </Badge>
                         
@@ -409,10 +409,10 @@ export function GuestHouseLiveGrid() {
                               buildingId: building.id
                             });
                           }}
-                          className="text-white hover:text-red-200 hover:bg-white/20 h-8 w-8 p-0"
+                          className="text-white hover:text-red-200 hover:bg-white/20 h-7 w-7 sm:h-8 sm:w-8 p-0"
                           title={t('building.deleteTitle')}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
                         
                         <div 
@@ -420,9 +420,9 @@ export function GuestHouseLiveGrid() {
                           onClick={() => toggleBuilding(building.id)}
                         >
                           {isCollapsed ? (
-                            <ChevronDown className="w-5 h-5 text-white" />
+                            <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                           ) : (
-                            <ChevronUp className="w-5 h-5 text-white" />
+                            <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                           )}
                         </div>
                       </div>
@@ -443,30 +443,30 @@ export function GuestHouseLiveGrid() {
                         const vacantCount = floorRooms.length - occupiedCount;
 
                         return (
-                          <div key={floor} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div key={floor} className="bg-gray-50 rounded-lg p-2.5 sm:p-4 border border-gray-200">
                             {/* Floor Header */}
                             <div 
-                              className="mb-3 flex flex-wrap items-center justify-between gap-2"
+                              className="mb-2 sm:mb-3 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2"
                             >
                               <div 
-                                className="flex items-center gap-2 flex-1 cursor-pointer"
+                                className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 cursor-pointer"
                                 onClick={() => toggleFloor(floorKey)}
                               >
-                                <Layers className="w-4 h-4 text-gray-600" />
-                                <h3 className="text-gray-900 font-medium">{t('floor.floor')} {floor}</h3>
-                                <Badge variant="outline" className="text-xs">
+                                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 flex-shrink-0" />
+                                <h3 className="text-gray-900 font-medium text-sm sm:text-base truncate">{t('floor.floor')} {floor}</h3>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 flex-shrink-0">
                                   {floorRooms.length} {t('building.rooms')}
                                 </Badge>
                               </div>
                               
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                 {occupiedCount > 0 && (
-                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">
+                                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                                     {occupiedCount} {t('floor.occupiedCount')}
                                   </Badge>
                                 )}
                                 {vacantCount > 0 && (
-                                  <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">
+                                  <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                                     {vacantCount} {t('floor.vacantCount')}
                                   </Badge>
                                 )}
@@ -490,20 +490,20 @@ export function GuestHouseLiveGrid() {
                                       floor: floor
                                     });
                                   }}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 sm:h-8 sm:w-8 p-0"
                                   title={t('floor.deleteTitle')}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 </Button>
                                 
                                 <div 
-                                  className="cursor-pointer p-1"
+                                  className="cursor-pointer p-0.5 sm:p-1"
                                   onClick={() => toggleFloor(floorKey)}
                                 >
                                   {isFloorCollapsed ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                                    <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                                   ) : (
-                                    <ChevronUp className="w-4 h-4 text-gray-600" />
+                                    <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                                   )}
                                 </div>
                               </div>
@@ -511,7 +511,7 @@ export function GuestHouseLiveGrid() {
                             
                             {/* Room Cards Grid */}
                             {!isFloorCollapsed && (
-                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
                                 {floorRooms
                                   .filter(room => {
                                     if (roomFilter === 'occupied') return room.guest;
@@ -530,7 +530,7 @@ export function GuestHouseLiveGrid() {
                                       onMouseDown={() => handleLongPressStart(room)}
                                       onMouseUp={handleLongPressEnd}
                                       onMouseLeave={handleLongPressEnd}
-                                      className={`${getRoomStatusColor(room)} p-4 cursor-pointer transition-all border-2 hover:shadow-xl active:scale-95 relative`}
+                                      className={`${getRoomStatusColor(room)} p-2 sm:p-4 cursor-pointer transition-all border-2 hover:shadow-xl active:scale-95 relative`}
                                     >
                                       {/* Delete Room Button */}
                                       <Button
@@ -548,21 +548,24 @@ export function GuestHouseLiveGrid() {
                                             name: `${t('common.room')} ${room.number}` 
                                           });
                                         }}
-                                        className="absolute top-1 right-1 h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
+                                        className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
                                         title={t('room.deleteTitle')}
                                       >
-                                        <X className="w-3 h-3" />
+                                        <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                       </Button>
-                                      <div className="text-center space-y-2">
-                                        <p className="text-2xl font-bold text-white">{room.number} - {room.type}</p>
-                                        <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-base px-3 py-1`}>
+                                      <div className="text-center space-y-1 sm:space-y-2">
+                                        <div>
+                                          <p className="text-base sm:text-2xl font-bold text-white">{room.number}</p>
+                                          <p className="text-xs sm:text-sm text-white/90 truncate">{room.type}</p>
+                                        </div>
+                                        <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-xs sm:text-base px-2 sm:px-3 py-0.5 sm:py-1`}>
                                           {statusInfo.text}
                                         </Badge>
                                         
                                         {room.guest && (
-                                          <div className="text-sm">
+                                          <div className="text-xs sm:text-sm">
                                             <p className="font-semibold text-white truncate">{room.guest.name}</p>
-                                            <p className="text-xs text-white/90">
+                                            <p className="text-[10px] sm:text-xs text-white/90">
                                               {room.guest.isHourly 
                                                 ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hourly').toLowerCase()}`
                                                 : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
@@ -572,11 +575,11 @@ export function GuestHouseLiveGrid() {
                                         )}
                                         
                                         {!room.guest && (
-                                          <div className="text-sm space-y-1">
-                                            <p className="text-xs text-gray-800">
+                                          <div className="text-[10px] sm:text-sm space-y-0.5 sm:space-y-1">
+                                            <p className="text-[10px] sm:text-xs text-gray-800 truncate">
                                               {t('room.hourlyRate')}: {formatCurrency(room.hourlyRate || 0)}₫
                                             </p>
-                                            <p className="text-xs text-gray-800">
+                                            <p className="text-[10px] sm:text-xs text-gray-800 truncate">
                                               {t('room.dailyRate')}: {formatCurrency(room.price)}₫
                                             </p>
                                           </div>
@@ -614,30 +617,30 @@ export function GuestHouseLiveGrid() {
               const vacantCount = floorRooms.length - occupiedCount;
 
               return (
-                <div key={floor} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div key={floor} className="bg-gray-50 rounded-lg p-2.5 sm:p-4 border border-gray-200">
                   {/* Floor Header */}
                   <div 
-                    className="mb-3 flex flex-wrap items-center justify-between gap-2"
+                    className="mb-2 sm:mb-3 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2"
                   >
                     <div 
-                      className="flex items-center gap-2 flex-1 cursor-pointer"
+                      className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 cursor-pointer"
                       onClick={() => toggleFloor(floorKey)}
                     >
-                      <Layers className="w-4 h-4 text-gray-600" />
-                      <h3 className="text-gray-900 font-medium">{t('floor.floor')} {floor}</h3>
-                      <Badge variant="outline" className="text-xs">
+                      <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 flex-shrink-0" />
+                      <h3 className="text-gray-900 font-medium text-sm sm:text-base truncate">{t('floor.floor')} {floor}</h3>
+                      <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 flex-shrink-0">
                         {floorRooms.length} {t('building.rooms')}
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       {occupiedCount > 0 && (
-                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                           {occupiedCount} {t('floor.occupiedCount')}
                         </Badge>
                       )}
                       {vacantCount > 0 && (
-                        <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                           {vacantCount} {t('floor.vacantCount')}
                         </Badge>
                       )}
@@ -661,20 +664,20 @@ export function GuestHouseLiveGrid() {
                             floor: floor
                           });
                         }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 sm:h-8 sm:w-8 p-0"
                         title={t('floor.deleteTitle')}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
                       
                       <div 
-                        className="cursor-pointer p-1"
+                        className="cursor-pointer p-0.5 sm:p-1"
                         onClick={() => toggleFloor(floorKey)}
                       >
                         {isFloorCollapsed ? (
-                          <ChevronDown className="w-4 h-4 text-gray-600" />
+                          <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                         ) : (
-                          <ChevronUp className="w-4 h-4 text-gray-600" />
+                          <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                         )}
                       </div>
                     </div>
@@ -682,7 +685,7 @@ export function GuestHouseLiveGrid() {
                   
                   {/* Room Cards Grid */}
                   {!isFloorCollapsed && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
                       {floorRooms
                         .filter(room => {
                           if (roomFilter === 'occupied') return room.guest;
@@ -701,7 +704,7 @@ export function GuestHouseLiveGrid() {
                             onMouseDown={() => handleLongPressStart(room)}
                             onMouseUp={handleLongPressEnd}
                             onMouseLeave={handleLongPressEnd}
-                            className={`${getRoomStatusColor(room)} p-4 cursor-pointer transition-all border-2 hover:shadow-xl active:scale-95 relative`}
+                            className={`${getRoomStatusColor(room)} p-2 sm:p-4 cursor-pointer transition-all border-2 hover:shadow-xl active:scale-95 relative`}
                           >
                             {/* Delete Room Button */}
                             <Button
@@ -719,21 +722,24 @@ export function GuestHouseLiveGrid() {
                                   name: `${t('common.room')} ${room.number}` 
                                 });
                               }}
-                              className="absolute top-1 right-1 h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
+                              className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
                               title={t('room.deleteTitle')}
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                             </Button>
-                            <div className="text-center space-y-2">
-                              <p className="text-2xl font-bold text-white">{room.number} - {room.type}</p>
-                              <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-base px-3 py-1`}>
+                            <div className="text-center space-y-1 sm:space-y-2">
+                              <div>
+                                <p className="text-base sm:text-2xl font-bold text-white">{room.number}</p>
+                                <p className="text-xs sm:text-sm text-white/90 truncate">{room.type}</p>
+                              </div>
+                              <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-xs sm:text-base px-2 sm:px-3 py-0.5 sm:py-1`}>
                                 {statusInfo.text}
                               </Badge>
                               
                               {room.guest && (
-                                <div className="text-sm">
+                                <div className="text-xs sm:text-sm">
                                   <p className="font-semibold text-white truncate">{room.guest.name}</p>
-                                  <p className="text-xs text-white/90">
+                                  <p className="text-[10px] sm:text-xs text-white/90">
                                     {room.guest.isHourly 
                                       ? `${formatCurrency(room.hourlyRate || 0)}₫/giờ`
                                       : `${formatCurrency(room.price)}₫/ngày`
@@ -743,11 +749,11 @@ export function GuestHouseLiveGrid() {
                               )}
                               
                               {!room.guest && (
-                                <div className="text-sm space-y-1">
-                                  <p className="text-xs text-gray-800">
+                                <div className="text-[10px] sm:text-sm space-y-0.5 sm:space-y-1">
+                                  <p className="text-[10px] sm:text-xs text-gray-800 truncate">
                                     Giờ: {formatCurrency(room.hourlyRate || 0)}₫
                                   </p>
-                                  <p className="text-xs text-gray-800">
+                                  <p className="text-[10px] sm:text-xs text-gray-800 truncate">
                                     Ngày: {formatCurrency(room.price)}₫
                                   </p>
                                 </div>
@@ -767,7 +773,7 @@ export function GuestHouseLiveGrid() {
 
         {/* Hint for delete */}
         {rooms.length > 0 && (
-          <p className="text-center text-sm text-gray-500 mt-4">
+          <p className="text-center text-xs sm:text-sm text-gray-500 mt-3 sm:mt-4 px-2">
             💡 {t('hint.deleteHint')}
           </p>
         )}
@@ -776,40 +782,40 @@ export function GuestHouseLiveGrid() {
       {/* FAB - Floating Action Button */}
       <div 
         ref={fabMenuRef}
-        className="fixed bottom-4 left-4 z-40"
+        className="fixed bottom-3 sm:bottom-4 left-3 sm:left-4 z-40"
       >
         {/* FAB Menu */}
         {fabMenuOpen && (
-          <div className="mb-3 bg-white rounded-lg shadow-2xl border-2 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="mb-2 sm:mb-3 bg-white rounded-lg shadow-2xl border-2 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
             <button
               onClick={() => {
                 setAddBuildingOpen(true);
                 setFabMenuOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition-colors w-full text-left border-b"
+              className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-purple-50 transition-colors w-full text-left border-b"
             >
-              <Building2 className="w-5 h-5 text-purple-600" />
-              <span className="font-medium text-gray-900">{t('fab.addBuilding')}</span>
+              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900 text-sm sm:text-base">{t('fab.addBuilding')}</span>
             </button>
             <button
               onClick={() => {
                 setAddFloorOpen(true);
                 setFabMenuOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors w-full text-left border-b"
+              className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-blue-50 transition-colors w-full text-left border-b"
             >
-              <Layers className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-gray-900">{t('fab.addFloor')}</span>
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900 text-sm sm:text-base">{t('fab.addFloor')}</span>
             </button>
             <button
               onClick={() => {
                 setAddRoomOpen(true);
                 setFabMenuOpen(false);
               }}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition-colors w-full text-left"
+              className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-green-50 transition-colors w-full text-left"
             >
-              <DoorOpen className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-gray-900">{t('fab.addRoom')}</span>
+              <DoorOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+              <span className="font-medium text-gray-900 text-sm sm:text-base">{t('fab.addRoom')}</span>
             </button>
           </div>
         )}
@@ -818,32 +824,32 @@ export function GuestHouseLiveGrid() {
         <Button
           size="lg"
           onClick={() => setFabMenuOpen(!fabMenuOpen)}
-          className="w-16 h-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 border-4 border-blue-700 hover:scale-110 transition-transform"
+          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 border-4 border-blue-700 hover:scale-110 transition-transform"
           title={t('fab.addFloorOrRoom')}
         >
-          <Plus className={`w-8 h-8 transition-transform ${fabMenuOpen ? 'rotate-45' : ''}`} />
+          <Plus className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${fabMenuOpen ? 'rotate-45' : ''}`} />
         </Button>
       </div>
 
       {/* Legend */}
-      <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 border-2 z-30">
-        <p className="text-base font-bold mb-3 text-gray-800">{t('legend.title')}</p>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-500 border-2 border-blue-700 rounded"></div>
-            <span className="text-sm text-gray-700">{t('legend.hourlyRent')}</span>
+      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 bg-white rounded-lg shadow-lg p-2.5 sm:p-4 border-2 z-30 max-w-[140px] sm:max-w-none">
+        <p className="text-xs sm:text-base font-bold mb-2 sm:mb-3 text-gray-800">{t('legend.title')}</p>
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-blue-500 border-2 border-blue-700 rounded flex-shrink-0"></div>
+            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.hourlyRent')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-green-500 border-2 border-green-700 rounded"></div>
-            <span className="text-sm text-gray-700">{t('legend.dailyRent')}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-green-500 border-2 border-green-700 rounded flex-shrink-0"></div>
+            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.dailyRent')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-yellow-400 border-2 border-yellow-600 rounded"></div>
-            <span className="text-sm text-gray-700">{t('legend.needsCleaning')}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-yellow-400 border-2 border-yellow-600 rounded flex-shrink-0"></div>
+            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.needsCleaning')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gray-300 border-2 border-gray-500 rounded"></div>
-            <span className="text-sm text-gray-700">{t('legend.vacantRoom')}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-gray-300 border-2 border-gray-500 rounded flex-shrink-0"></div>
+            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.vacantRoom')}</span>
           </div>
         </div>
       </div>

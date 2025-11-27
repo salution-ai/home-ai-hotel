@@ -117,6 +117,25 @@ html {
   font-size: var(--font-size);
 }
 
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Improve touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better text sizing on mobile */
+  html {
+    font-size: 14px;
+  }
+}
+
 /* Print styles for receipts */
 @media print {
   @page {
