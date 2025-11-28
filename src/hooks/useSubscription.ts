@@ -10,8 +10,8 @@ interface UseSubscriptionReturn {
   loading: boolean;
   hasFeature: (feature: string) => boolean;
   getFeature: <T = unknown>(feature: string) => T | undefined;
-  maxRooms: number | null; // null means unlimited
-  maxBuildings: number | null; // null means unlimited
+  maxRooms: number; // -1 means unlimited, otherwise defaults to 10 for free plan
+  maxBuildings: number; // -1 means unlimited, otherwise defaults to 1 for free plan
   canExportReports: boolean;
   hasAdvancedReports: boolean;
 }

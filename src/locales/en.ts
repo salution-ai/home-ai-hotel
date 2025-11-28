@@ -203,7 +203,6 @@ export const en = {
   'add.floorCreated': 'Created floor',
   'add.withRooms': 'with',
   'add.errorSelectBuilding': 'Please select building',
-  'add.errorFloorExists': 'already exists. Please choose a different floor number.',
   'add.errorRoomCount': 'Number of rooms must be between 1 and 50',
   'add.buildingTitleBoarding': 'Add New Building',
   'add.buildingDescriptionBoarding': 'Create a new building to manage rooms separately',
@@ -233,6 +232,7 @@ export const en = {
   'login.errorSelectModel': 'Please select business model first',
   'login.setupSuccess': 'Hotel setup completed successfully!',
   'login.success': 'Login successful!',
+  'login.login': 'Login',
   'login.loginWithGoogle': 'Login with Google',
   
   // Room Dialog
@@ -243,8 +243,6 @@ export const en = {
   'room.phone': 'Phone',
   'room.checkoutExpected': 'Expected Check-out',
   'room.rentalType': 'Rental Type',
-  'room.hourly': 'Hourly',
-  'room.daily': 'Daily',
   'room.totalAmount': 'Total Room Amount',
   'room.checkedInBy': 'Checked in by',
   'room.checkout': 'Check-out',
@@ -353,7 +351,6 @@ export const en = {
   'revenue.noRevenueYear': 'No revenue this year',
   'revenue.paid': 'Paid',
   'revenue.monthFormat': 'Month',
-  'revenue.totalYear': 'Yearly Total',
   'revenue.monthlyRevenue': 'Monthly Revenue',
   'revenue.checkins': 'check-ins',
   

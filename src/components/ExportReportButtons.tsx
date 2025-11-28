@@ -93,7 +93,7 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
             index + 1,
             item.date ? formatDate(item.date) : '',
             item.roomNumber,
-            removeVietnameseAccents(item.guestName),
+            removeVietnameseAccents(item.guestName || ''),
             item.type || '',
             item.amount
           ]);
@@ -259,9 +259,9 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
           stt: index + 1,
           date: item.date ? formatDate(item.date, true) : '',
           room: item.roomNumber,
-          guest: removeVietnameseAccents(item.guestName),
+          guest: removeVietnameseAccents(item.guestName || ''),
           type: item.type || '',
-          amount: formatCurrency(item.amount)
+          amount: formatCurrency(item.amount || 0)
         }));
       } else {
         if (viewMode === 'year') {

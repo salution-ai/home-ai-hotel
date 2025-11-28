@@ -230,6 +230,7 @@ export const vi = {
   'login.errorSelectModel': 'Vui lòng chọn mô hình kinh doanh trước',
   'login.setupSuccess': 'Khách sạn đã được thiết lập thành công!',
   'login.success': 'Đăng nhập thành công!',
+  'login.login': 'Đăng nhập',
   'login.loginWithGoogle': 'Đăng nhập với Google',
   
   // Room Dialog
