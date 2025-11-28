@@ -118,11 +118,8 @@ export const vi = {
   'menu.configBoardingHouse': 'Cấu hình Nhà trọ',
   'menu.configGuestHouse': 'Cấu hình Nhà nghỉ',
   'menu.bankAccount': 'Tài khoản Ngân hàng',
-  'menu.taxInvoice': 'Thuế & Hóa đơn điện tử',
-  'menu.invoiceHistory': 'Lịch sử hóa đơn',
   'menu.addStaff': 'Thêm Nhân viên',
   'menu.staffList': 'Danh sách nhân viên',
-  'menu.resetData': 'Reset dữ liệu',
   'menu.logout': 'Đăng xuất',
   'menu.hotelConfig': 'Cấu hình Khách sạn',
   'menu.updateHotelInfo': 'Cập nhật tên và địa chỉ khách sạn',
@@ -134,18 +131,8 @@ export const vi = {
   'menu.staffName': 'Tên nhân viên',
   'menu.staffEmail': 'Email nhân viên',
   'menu.staffRole': 'Vai trò',
-  'menu.confirmReset': 'Xác nhận Reset dữ liệu',
-  'menu.resetWarning': 'Hành động này sẽ xóa <strong>TẤT CẢ</strong> dữ liệu bao gồm:',
-  'menu.resetItem1': 'Thông tin tài khoản và khách sạn',
-  'menu.resetItem2': 'Tất cả phòng và khách đã check-in',
-  'menu.resetItem3': 'Lịch sử thanh toán và báo cáo',
-  'menu.resetItem4': 'Cấu hình ngân hàng và tòa nhà',
-  'menu.resetNoteLabel': 'Lưu ý',
-  'menu.resetNote': 'Dữ liệu sẽ được reset về trạng thái ban đầu. Bạn sẽ cần đăng ký lại tài khoản.',
-  'menu.confirmResetButton': 'Xác nhận Reset',
   'menu.staffAdded': 'Đã thêm nhân viên',
   'menu.hotelUpdated': 'Cập nhật thông tin khách sạn thành công!',
-  'menu.dataReset': 'Đã xóa toàn bộ dữ liệu!',
   
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',
@@ -243,6 +230,7 @@ export const vi = {
   'login.errorSelectModel': 'Vui lòng chọn mô hình kinh doanh trước',
   'login.setupSuccess': 'Khách sạn đã được thiết lập thành công!',
   'login.success': 'Đăng nhập thành công!',
+  'login.loginWithGoogle': 'Đăng nhập với Google',
   
   // Room Dialog
   'room.manageRoom': 'Quản lý thông tin phòng và check-in/check-out khách',
@@ -341,6 +329,7 @@ export const vi = {
   'payment.processing': 'Đang xử lý...',
   'payment.confirmPayment': 'Xác nhận thanh toán',
   'payment.thankYou': 'Cảm ơn quý khách! Hẹn gặp lại! 🙏',
+  'payment.qrCodeLabel': 'Quét mã QR để chuyển khoản',
   
   // Revenue Dialog
   'revenue.title': 'Báo cáo Doanh thu',
@@ -391,6 +380,7 @@ export const vi = {
   'bank.cancel': 'Hủy',
   'bank.save': 'Lưu thay đổi',
   'bank.updateSuccess': 'Cập nhật thông tin tài khoản ngân hàng thành công!',
+  'bank.invalidBankSelection': 'Vui lòng chọn ngân hàng hợp lệ',
   
   // Export Report Buttons
   'export.noData': 'Không có dữ liệu để xuất',
@@ -595,5 +585,23 @@ export const vi = {
   'invoiceSettings.saveError': 'Lỗi khi lưu cấu hình',
   'invoiceSettings.errorCompanyName': 'Vui lòng nhập tên công ty và mã số thuế',
   'invoiceSettings.errorApiCredentials': 'Vui lòng nhập API Key và API Secret',
+
+  // Premium
+  'premium.title': 'Nâng cấp Premium',
+  'premium.subtitle': 'Mở khóa tất cả tính năng cao cấp',
+  'premium.featuresTitle': 'Tính năng Premium:',
+  'premium.feature1': 'Không giới hạn phòng',
+  'premium.feature2': 'Báo cáo nâng cao',
+  'premium.feature3': 'Hỗ trợ ưu tiên',
+  'premium.feature4': 'Xuất Excel/PDF',
+  'premium.feature5': 'Quản lý tài khoản ngân hàng',
+  'premium.choosePlan': 'Chọn gói:',
+  'premium.month': 'Tháng',
+  'premium.year': 'Năm',
+  'premium.select': 'Chọn',
+  'premium.activateSuccess': 'Kích hoạt Premium thành công!',
+  'premium.extendSuccess': 'Gia hạn Premium thành công!',
+  'premium.remainingDays': 'Còn {days} ngày',
+  'premium.extend': 'Gia hạn',
 } as const;
 

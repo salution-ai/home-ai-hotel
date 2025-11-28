@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface AddFloorDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface AddFloorDialogProps {
 export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialogProps) {
   const { addRoom, rooms, hotel } = useApp();
   const { t } = useLanguage();
+  const { maxRooms } = useSubscription({ appSlug: 'guesthouse' });
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || '');
   const [floorNumber, setFloorNumber] = useState<number>(1);
   const [floorName, setFloorName] = useState<string>('');
@@ -47,7 +49,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
     }
   }, [open, rooms, selectedBuildingId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedBuildingId) {
@@ -65,6 +67,21 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       return;
     }
 
+    // Check room limit (maxRooms is never null now, defaults to 10 for free plan)
+    if (maxRooms !== -1) {
+      const currentRoomCount = rooms.length;
+      const roomsAfterAdd = currentRoomCount + numberOfRooms;
+      if (roomsAfterAdd > maxRooms) {
+        const availableSlots = maxRooms - currentRoomCount;
+        if (availableSlots <= 0) {
+          toast.error(`Room limit reached. Your plan allows up to ${maxRooms} rooms. Please upgrade to add more rooms.`);
+          return;
+        }
+        toast.error(`You can only add ${availableSlots} more room(s). Your plan allows up to ${maxRooms} rooms. Please upgrade to add more.`);
+        return;
+      }
+    }
+
     // Check if floor already exists in the selected building
     const floorExists = rooms.some(r => 
       r.floor === floorNumber && 
@@ -77,6 +94,16 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
 
     // Generate rooms for this floor
     const newRooms: Room[] = [];
+    // Ensure we have a valid buildingId - use first building if 'default' or empty
+    let validBuildingId = selectedBuildingId;
+    if (!validBuildingId || validBuildingId === 'default') {
+      if (!hotel?.buildings || hotel.buildings.length === 0) {
+        toast.error(t('add.errorBuilding') || 'No building found. Please create a building first.');
+        return;
+      }
+      validBuildingId = hotel.buildings[0].id;
+    }
+
     for (let i = 1; i <= numberOfRooms; i++) {
       const roomNumber = `${floorNumber}${i.toString().padStart(2, '0')}`; // e.g., 201, 202, 203...
       
@@ -84,7 +111,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
         id: `room-${Date.now()}-${i}`,
         number: roomNumber,
         floor: floorNumber,
-        buildingId: selectedBuildingId === 'default' ? undefined : selectedBuildingId,
+        buildingId: validBuildingId,
         type: 'Single',
         price: 300000, // Default price
         hourlyRate: 50000, // Default hourly rate
@@ -94,14 +121,20 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       newRooms.push(newRoom);
     }
 
-    // Add all rooms to the context at once
-    newRooms.forEach(room => addRoom(room));
+    // Add all rooms to the context - use Promise.all for parallel execution
+    try {
+      await Promise.all(newRooms.map(room => addRoom(room)));
 
-    toast.success(`✅ ${t('add.floorCreated')} ${floorNumber} ${t('add.withRooms')} ${numberOfRooms} ${t('building.rooms')}`, {
-      description: `${t('common.room')} ${newRooms[0].number} - ${newRooms[newRooms.length - 1].number}`
-    });
+      toast.success(`✅ ${t('add.floorCreated')} ${floorNumber} ${t('add.withRooms')} ${numberOfRooms} ${t('building.rooms')}`, {
+        description: `${t('common.room')} ${newRooms[0].number} - ${newRooms[newRooms.length - 1].number}`
+      });
 
-    onClose();
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+      // Show additional info if some rooms failed
+      toast.error(`Some rooms may not have been created. Please check and try again.`);
+    }
   };
 
   return (

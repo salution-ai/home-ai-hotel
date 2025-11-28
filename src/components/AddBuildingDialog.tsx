@@ -9,6 +9,7 @@ import { Label } from './ui/label';
 import { Building, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface AddBuildingDialogProps {
   open: boolean;
@@ -18,11 +19,21 @@ interface AddBuildingDialogProps {
 export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
   const { hotel, addBuilding } = useApp();
   const { t } = useLanguage();
+  const { maxBuildings } = useSubscription({ appSlug: 'guesthouse' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check building limit (maxBuildings is never null now, defaults to 1 for free plan)
+    if (maxBuildings !== -1) {
+      const currentBuildingCount = hotel?.buildings.length || 0;
+      if (currentBuildingCount >= maxBuildings) {
+        toast.error(`Building limit reached. Your plan allows up to ${maxBuildings} building(s). Please upgrade to add more buildings.`);
+        return;
+      }
+    }
 
     if (!name.trim()) {
       toast.error(t('add.errorBuildingNameBoarding'));
@@ -36,13 +47,17 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
       order: (hotel?.buildings.length || 0) + 1,
     };
 
-    addBuilding(newBuilding);
-    toast.success(`${t('add.buildingAddedBoarding')} "${name}"`);
-    
-    // Reset form
-    setName('');
-    setDescription('');
-    onClose();
+    try {
+      await addBuilding(newBuilding);
+      toast.success(`${t('add.buildingAddedBoarding')} "${name}"`);
+      
+      // Reset form
+      setName('');
+      setDescription('');
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
   const handleClose = () => {

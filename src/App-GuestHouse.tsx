@@ -11,7 +11,6 @@ import { Toaster } from './components/ui/sonner';
  * - Flexible rental: Hourly or Daily
  * - Quick check-in/check-out
  * - Incidental charges (minibar, room service)
- * - Payment with QR code
  * - Revenue reports
  * - Simplified interface for small operations
  */

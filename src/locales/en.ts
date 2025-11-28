@@ -120,11 +120,8 @@ export const en = {
   'menu.configBoardingHouse': 'Boarding House Configuration',
   'menu.configGuestHouse': 'Guest House Configuration',
   'menu.bankAccount': 'Bank Account',
-  'menu.taxInvoice': 'Tax & Electronic Invoice',
-  'menu.invoiceHistory': 'Invoice History',
   'menu.addStaff': 'Add Staff',
   'menu.staffList': 'Staff List',
-  'menu.resetData': 'Reset Data',
   'menu.logout': 'Logout',
   'menu.hotelConfig': 'Hotel Configuration',
   'menu.updateHotelInfo': 'Update hotel name and address',
@@ -136,18 +133,8 @@ export const en = {
   'menu.staffName': 'Staff Name',
   'menu.staffEmail': 'Staff Email',
   'menu.staffRole': 'Role',
-  'menu.confirmReset': 'Confirm Reset Data',
-  'menu.resetWarning': 'This action will delete <strong>ALL</strong> data including:',
-  'menu.resetItem1': 'Account and hotel information',
-  'menu.resetItem2': 'All rooms and checked-in guests',
-  'menu.resetItem3': 'Payment history and reports',
-  'menu.resetItem4': 'Bank and building configurations',
-  'menu.resetNoteLabel': 'Note',
-  'menu.resetNote': 'Data will be reset to initial state. You will need to register your account again.',
-  'menu.confirmResetButton': 'Confirm Reset',
   'menu.staffAdded': 'Staff added',
   'menu.hotelUpdated': 'Hotel information updated successfully!',
-  'menu.dataReset': 'All data deleted!',
   
   // Add Dialogs
   'add.roomTitle': 'Add New Room',
@@ -246,6 +233,7 @@ export const en = {
   'login.errorSelectModel': 'Please select business model first',
   'login.setupSuccess': 'Hotel setup completed successfully!',
   'login.success': 'Login successful!',
+  'login.loginWithGoogle': 'Login with Google',
   
   // Room Dialog
   'room.manageRoom': 'Manage room information and check-in/check-out guests',
@@ -344,6 +332,7 @@ export const en = {
   'payment.processing': 'Processing...',
   'payment.confirmPayment': 'Confirm Payment',
   'payment.thankYou': 'Thank you! See you again! 🙏',
+  'payment.qrCodeLabel': 'Scan QR code to transfer',
   
   // Revenue Dialog
   'revenue.title': 'Revenue Report',
@@ -395,6 +384,7 @@ export const en = {
   'bank.cancel': 'Cancel',
   'bank.save': 'Save Changes',
   'bank.updateSuccess': 'Bank account information updated successfully!',
+  'bank.invalidBankSelection': 'Please select a valid bank',
   
   // Export Report Buttons
   'export.noData': 'No data to export',
@@ -599,5 +589,23 @@ export const en = {
   'invoiceSettings.saveError': 'Error saving configuration',
   'invoiceSettings.errorCompanyName': 'Please enter company name and tax code',
   'invoiceSettings.errorApiCredentials': 'Please enter API Key and API Secret',
+
+  // Premium
+  'premium.title': 'Upgrade to Premium',
+  'premium.subtitle': 'Unlock all premium features',
+  'premium.featuresTitle': 'Premium Features:',
+  'premium.feature1': 'Unlimited rooms',
+  'premium.feature2': 'Advanced reporting',
+  'premium.feature3': 'Priority support',
+  'premium.feature4': 'Export to Excel/PDF',
+  'premium.feature5': 'Bank account management',
+  'premium.choosePlan': 'Choose a plan:',
+  'premium.month': 'Month',
+  'premium.year': 'Year',
+  'premium.select': 'Select',
+  'premium.activateSuccess': 'Premium subscription activated!',
+  'premium.extendSuccess': 'Premium subscription extended!',
+  'premium.remainingDays': '{days} days remaining',
+  'premium.extend': 'Extend',
 } as const;
 

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { MoneyInput } from './MoneyInput';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface AddRoomDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface AddRoomDialogProps {
 export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: AddRoomDialogProps) {
   const { hotel, addRoom, businessModel, rooms } = useApp();
   const { t } = useLanguage();
+  const { maxRooms, loading: subscriptionLoading } = useSubscription({ appSlug: 'guesthouse' });
   const [roomNumber, setRoomNumber] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || defaultBuildingId || '');
   const [selectedFloor, setSelectedFloor] = useState('1');
@@ -32,8 +34,17 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const [hourlyRate, setHourlyRate] = useState('');
   const isGuesthouse = businessModel === 'guesthouse';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check room limit (maxRooms is never null now, defaults to 10 for free plan)
+    if (maxRooms !== -1) {
+      const currentRoomCount = rooms.length;
+      if (currentRoomCount >= maxRooms) {
+        toast.error(`Room limit reached. Your plan allows up to ${maxRooms} rooms. Please upgrade to add more rooms.`);
+        return;
+      }
+    }
 
     if (!roomNumber.trim()) {
       toast.error(t('add.errorRoomNumber'));
@@ -71,19 +82,23 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       status: 'vacant-clean' as const,
     };
 
-    addRoom(newRoom);
-    toast.success(`${t('add.roomAdded')} ${roomNumber} (${t('floor.floor')} ${selectedFloor})`);
-    
-    // Reset form
-    setRoomNumber('');
-    setSelectedFloor('1');
-    setRoomType('Single');
-    setPrice('');
-    setHourlyRate('');
-    if (!defaultBuildingId && !buildingId) {
-      setSelectedBuildingId('');
+    try {
+      await addRoom(newRoom);
+      toast.success(`${t('add.roomAdded')} ${roomNumber} (${t('floor.floor')} ${selectedFloor})`);
+      
+      // Reset form
+      setRoomNumber('');
+      setSelectedFloor('1');
+      setRoomType('Single');
+      setPrice('');
+      setHourlyRate('');
+      if (!defaultBuildingId && !buildingId) {
+        setSelectedBuildingId('');
+      }
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
     }
-    onClose();
   };
 
   const handleClose = () => {
@@ -329,7 +344,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-800">
-              💡 <strong>{t('menu.resetNoteLabel')}:</strong> {isGuesthouse 
+              💡 <strong>{t('bank.note')}</strong> {isGuesthouse 
                 ? t('add.priceHintGuesthouse')
                 : t('add.priceHintBoarding')}
             </p>

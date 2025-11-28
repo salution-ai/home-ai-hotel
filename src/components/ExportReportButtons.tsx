@@ -1,6 +1,6 @@
 'use client'
 
-import { FileSpreadsheet, FileText } from 'lucide-react';
+import { FileSpreadsheet, FileText, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,6 +8,7 @@ import { removeVietnameseAccents, formatCurrency, formatDate } from '../utils/te
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface ExportData {
   date?: string;
@@ -46,6 +47,7 @@ interface ExportReportButtonsProps {
 
 export function ExportReportButtons({ data, reportType, period, summary, viewMode = 'month' }: ExportReportButtonsProps) {
   const { t } = useLanguage();
+  const { canExportReports, loading: subscriptionLoading } = useSubscription({ appSlug: 'guesthouse' });
   
   // Compact currency format for PDF (removes trailing zeros)
   const formatCurrencyCompact = (amount: number): string => {
@@ -61,6 +63,11 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
   };
 
   const exportToExcel = () => {
+    if (!canExportReports) {
+      toast.error('Export reports is not available in your plan. Please upgrade to Premium to export reports.');
+      return;
+    }
+
     try {
       if (data.length === 0) {
         toast.error(t('export.noData'));
@@ -198,6 +205,11 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
   };
 
   const exportToPDF = () => {
+    if (!canExportReports) {
+      toast.error('Export reports is not available in your plan. Please upgrade to Premium to export reports.');
+      return;
+    }
+
     try {
       if (data.length === 0) {
         toast.error(t('export.noData'));
@@ -414,6 +426,29 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
       toast.error(t('export.pdfError'));
     }
   };
+
+  if (!canExportReports) {
+    return (
+      <div className="flex gap-2">
+        <Button
+          disabled
+          variant="outline"
+          className="flex-1 bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed"
+        >
+          <Lock className="w-4 h-4 mr-2" />
+          {t('export.excel')}
+        </Button>
+        <Button
+          disabled
+          variant="outline"
+          className="flex-1 bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed"
+        >
+          <Lock className="w-4 h-4 mr-2" />
+          {t('export.pdf')}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-2">

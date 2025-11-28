@@ -315,8 +315,7 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.revenueToday')}</p>
-                  <p className="text-xl sm:text-3xl font-bold text-blue-600 truncate">{formatCurrency(todayRevenue)}₫</p>
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">Revenue Report</p>
                   <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">👆 {t('dashboard.clickToViewDetails')}</p>
                 </div>
                 <DollarSign className="w-8 h-8 sm:w-12 sm:h-12 text-green-400 flex-shrink-0 ml-1" />
@@ -922,22 +921,26 @@ export function GuestHouseLiveGrid() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('delete.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (!deleteConfirm) return;
                 
-                if (deleteConfirm.type === 'floor') {
-                  if (deleteConfirm.floor !== undefined) {
-                    deleteFloor(deleteConfirm.floor, deleteConfirm.buildingId);
+                try {
+                  if (deleteConfirm.type === 'floor') {
+                    if (deleteConfirm.floor !== undefined) {
+                      await deleteFloor(deleteConfirm.floor, deleteConfirm.buildingId);
+                      toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
+                    }
+                  } else if (deleteConfirm.type === 'building') {
+                    await deleteBuilding(deleteConfirm.id);
+                    toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
+                  } else {
+                    await deleteRoom(deleteConfirm.id);
                     toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
                   }
-                } else if (deleteConfirm.type === 'building') {
-                  deleteBuilding(deleteConfirm.id);
-                  toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
-                } else {
-                  deleteRoom(deleteConfirm.id);
-                  toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
+                  setDeleteConfirm(null);
+                } catch (error) {
+                  // Error already handled in AppContext
                 }
-                setDeleteConfirm(null);
               }}
               className="bg-red-600 hover:bg-red-700"
             >

@@ -135,10 +135,11 @@ export interface User {
   hotelName: string;
 }
 
-export interface BankAccount {
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
+export interface Staff {
+  id: string;
+  email: string;
+  name: string;
+  role: 'receptionist' | 'housekeeping';
 }
 
 export interface Hotel {
@@ -147,12 +148,12 @@ export interface Hotel {
   address?: string;
   adminEmail: string;
   businessModel: BusinessModel;
-  bankAccount?: BankAccount;
   buildings: Building[];
-  staff: Array<{
-    id: string;
-    email: string;
-    name: string;
-    role: 'receptionist' | 'housekeeping';
-  }>;
+  staff: Staff[];
+  bankAccount?: {
+    bankName: string;
+    bankCode: string;
+    accountNumber: string;
+    accountHolder: string;
+  };
 }

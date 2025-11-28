@@ -1,8 +1,6 @@
 'use client'
 
-import { InvoiceSettingsDialog } from './InvoiceSettingsDialog';
-import { InvoiceHistoryDialog } from './InvoiceHistoryDialog';
-import { Home, LogOut, UserPlus, Users, CreditCard, Building2, Settings, Trash2, FileText, History } from 'lucide-react';
+import { Home, LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -17,6 +15,7 @@ import { Textarea } from './ui/textarea';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { BankAccountManagement } from './BankAccountManagement';
+import { SubscriptionStatus } from './SubscriptionStatus';
 
 interface AppMenuProps {
   open: boolean;
@@ -24,15 +23,12 @@ interface AppMenuProps {
 }
 
 export function AppMenu({ open, onClose }: AppMenuProps) {
-  const { user, hotel, logout, addStaff, updateHotelInfo } = useApp();
+  const { user, hotel, logout, addStaff, updateHotelInfo, updateBankAccount } = useApp();
   const { features, isBoardingHouse, isGuestHouse } = useBusinessModel();
   const { t } = useLanguage();
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showHotelConfig, setShowHotelConfig] = useState(false);
   const [showBankAccount, setShowBankAccount] = useState(false);
-  const [showInvoiceSettings, setShowInvoiceSettings] = useState(false);
-  const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffRole, setStaffRole] = useState<'receptionist' | 'housekeeping'>('receptionist');
@@ -41,23 +37,18 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
   const isAdmin = user?.role === 'admin';
 
-  const handleAddStaff = (e: React.FormEvent) => {
+  const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    addStaff(staffEmail, staffName, staffRole);
-    toast.success(`${t('menu.staffAdded')} ${staffName}!`);
-    setShowAddStaff(false);
-    setStaffName('');
-    setStaffEmail('');
-    setStaffRole('receptionist');
-  };
-
-  const handleResetAllData = () => {
-    // Clear all localStorage
-    localStorage.clear();
-    toast.success(t('menu.dataReset'));
-    setShowResetConfirm(false);
-    // Reload page to reset state
-    window.location.reload();
+    try {
+      await addStaff(staffEmail, staffName, staffRole);
+      toast.success(`${t('menu.staffAdded')} ${staffName}!`);
+      setShowAddStaff(false);
+      setStaffName('');
+      setStaffEmail('');
+      setStaffRole('receptionist');
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
   return (
@@ -69,6 +60,9 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto mt-6 space-y-2 pb-4">
+          {/* Subscription Status - Above Room Map */}
+          <SubscriptionStatus appSlug="guesthouse" className="mb-4" />
+
           {/* Always visible */}
           <Button variant="ghost" className="w-full justify-start" onClick={onClose}>
             <Home className="w-5 h-5 mr-3" />
@@ -91,7 +85,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 <Building2 className="w-5 h-5 mr-3" />
                 {isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')}
               </Button>
-              
+
               <Button 
                 variant="ghost" 
                 className="w-full justify-start"
@@ -102,31 +96,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               >
                 <CreditCard className="w-5 h-5 mr-3" />
                 {t('menu.bankAccount')}
-              </Button>
-
-
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                onClick={() => {
-                  setShowInvoiceSettings(true);
-                  onClose();
-                }}
-              >
-                <FileText className="w-5 h-5 mr-3" />
-                {t('menu.taxInvoice')}
-              </Button>
-
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => {
-                  setShowInvoiceHistory(true);
-                  onClose();
-                }}
-              >
-                <History className="w-5 h-5 mr-3" />
-                {t('menu.invoiceHistory')}
               </Button>
 
               {/* Staff Management - Only for hotels with staff */}
@@ -169,18 +138,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
           <Button
             variant="ghost"
-            className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-            onClick={() => {
-              setShowResetConfirm(true);
-              onClose();
-            }}
-          >
-            <Trash2 className="w-5 h-5 mr-3" />
-            {t('menu.resetData')}
-          </Button>
-
-          <Button
-            variant="ghost"
             className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={() => {
               logout();
@@ -202,11 +159,15 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             <DialogDescription>{t('menu.updateHotelInfo')}</DialogDescription>
           </DialogHeader>
           <form 
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              updateHotelInfo(hotelName, hotelAddress);
-              toast.success(t('menu.hotelUpdated'));
-              setShowHotelConfig(false);
+              try {
+                await updateHotelInfo(hotelName, hotelAddress);
+                toast.success(t('menu.hotelUpdated'));
+                setShowHotelConfig(false);
+              } catch (error) {
+                // Error already handled in AppContext
+              }
             }} 
             className="space-y-4"
           >
@@ -285,51 +246,10 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       </Dialog>
 
       {/* Bank Account Management Dialog */}
-      <BankAccountManagement open={showBankAccount} onClose={() => setShowBankAccount(false)} />
-      
-
-      {/* Reset Confirmation Dialog */}
-      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-orange-600">⚠️ {t('menu.confirmReset')}</DialogTitle>
-            <DialogDescription className="text-base" dangerouslySetInnerHTML={{ __html: t('menu.resetWarning') }} />
-          </DialogHeader>
-          <div className="space-y-2 text-sm text-gray-700">
-            <p>• {t('menu.resetItem1')}</p>
-            <p>• {t('menu.resetItem2')}</p>
-            <p>• {t('menu.resetItem3')}</p>
-            <p>• {t('menu.resetItem4')}</p>
-          </div>
-          <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-            <p className="text-sm text-orange-800">
-              <strong>{t('menu.resetNoteLabel')}:</strong> {t('menu.resetNote')}
-            </p>
-          </div>
-          <div className="flex gap-2 pt-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowResetConfirm(false)}
-              className="flex-1"
-            >
-              {t('delete.cancel')}
-            </Button>
-            <Button 
-              onClick={handleResetAllData}
-              className="flex-1 bg-orange-600 hover:bg-orange-700"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {t('menu.confirmResetButton')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Invoice Settings Dialog */}
-      <InvoiceSettingsDialog open={showInvoiceSettings} onClose={() => setShowInvoiceSettings(false)} />
-
-      {/* Invoice History Dialog */}
-      <InvoiceHistoryDialog open={showInvoiceHistory} onOpenChange={(open) => setShowInvoiceHistory(open)} />
+      <BankAccountManagement 
+        open={showBankAccount} 
+        onClose={() => setShowBankAccount(false)} 
+      />
     </Sheet>
   );
 }

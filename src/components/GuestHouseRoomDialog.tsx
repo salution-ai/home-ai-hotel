@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Room, PaymentMethod, IncidentalCharge, RoomType, RoomStatus } from '../types';
+import { Room, PaymentMethod, IncidentalCharge, RoomType, RoomStatus, Payment } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -42,7 +42,7 @@ interface GuestHouseRoomDialogProps {
 }
 
 export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHouseRoomDialogProps) {
-  const { updateRoom, user, deleteRoom, hotel } = useApp();
+  const { updateRoom, user, deleteRoom, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms } = useApp();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'info' | 'checkin'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -128,7 +128,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     return room.guest.totalAmount;
   };
 
-  const handleCheckIn = (e: React.FormEvent) => {
+  const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!guestName.trim()) {
@@ -138,83 +138,111 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     
     const total = calculateTotal();
     
-    // Complete check-in immediately without payment
-    const updatedRoom: Room = {
-      ...room,
-      status: 'occupied',
-      guest: {
+    try {
+      await checkIn(room.id, {
         name: guestName,
         phone: guestPhone,
+        email: '',
         checkInDate: checkInDate,
         checkOutDate: checkOutDate,
         totalAmount: total,
         isHourly: rentalType === 'hourly',
-        checkedInBy: user?.name
-      }
-    };
-    
-    updateRoom(room.id, {
-      status: 'occupied',
-      guest: {
-        name: guestName,
-        phone: guestPhone,
-        checkInDate: checkInDate,
-        checkOutDate: checkOutDate,
-        totalAmount: total,
-        isHourly: rentalType === 'hourly',
-        checkedInBy: user?.name
-      }
-    });
-    toast.success(rentalType === 'hourly'
-      ? `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${hours} ${t('room.hours')})` 
-      : `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${t('room.checkinSuccessDaily')})`
-    );
-    
-    // Reset form
-    setGuestName('');
-    setGuestPhone('');
-    onClose();
+        checkedInBy: user?.name || user?.email,
+      });
+      
+      toast.success(rentalType === 'hourly'
+        ? `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${hours} ${t('room.hours')})` 
+        : `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${t('room.checkinSuccessDaily')})`
+      );
+      
+      // Reset form
+      setGuestName('');
+      setGuestPhone('');
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
   const handleStartCheckOut = () => {
     setShowPaymentDialog(true);
   };
 
-  const completeCheckOut = (paymentMethod: PaymentMethod) => {
+  const completeCheckOut = async (paymentMethod: PaymentMethod) => {
     if (!room.guest) return;
     
-    updateRoom(room.id, {
-      status: 'vacant-dirty',
-      guest: undefined
-    });
-    toast.success(`✅ ${t('room.checkoutSuccess')} ${room.number} ${t('action.payment')}`);
-    setShowPaymentDialog(false);
-    onClose();
+    try {
+      // Get the latest room data from state to ensure we have the correct room ID
+      // The room prop might be stale, so we look it up from the current rooms state
+      const currentRoom = rooms.find(r => r.id === room.id);
+      if (!currentRoom || !currentRoom.guest) {
+        toast.error('Room not found or guest data is missing');
+        return;
+      }
+
+      // Create payment record before checking out
+      const payment: Payment = {
+        id: `payment-${Date.now()}`,
+        roomNumber: currentRoom.number,
+        guestName: currentRoom.guest.name,
+        checkInDate: currentRoom.guest.checkInDate,
+        checkOutDate: currentRoom.guest.checkOutDate,
+        roomCharge: currentRoom.guest.totalAmount,
+        services: currentRoom.guest.services || [],
+        incidentalCharges: currentRoom.guest.incidentalCharges || [],
+        subtotal: currentRoom.guest.totalAmount,
+        vat: 0,
+        total: currentRoom.guest.totalAmount,
+        paymentMethod: paymentMethod,
+        documentType: 'receipt',
+        timestamp: new Date().toISOString(),
+        processedBy: user?.name || user?.email || 'Unknown',
+      };
+
+      // Add payment first (this creates the revenue record)
+      // Use the current room ID to ensure it matches the backend
+      await addPayment(payment, currentRoom.id);
+      
+      // Then check out (which removes the guest)
+      await checkOut(currentRoom.id);
+      
+      toast.success(`✅ ${t('room.checkoutSuccess')} ${currentRoom.number} ${t('action.payment')}`);
+      setShowPaymentDialog(false);
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
-  const handleMarkClean = () => {
-    updateRoom(room.id, {
-      status: 'vacant-clean'
-    });
-    toast.success(`${t('common.room')} ${room.number} ${t('room.markedClean')}`);
-    onClose();
+  const handleMarkClean = async () => {
+    try {
+      await markRoomCleaned(room.id);
+      toast.success(`${t('common.room')} ${room.number} ${t('room.markedClean')}`);
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
-  const handleDeleteRoom = () => {
+  const handleDeleteRoom = async () => {
     if (room.guest) {
       toast.error(t('room.errorDeleteOccupied'));
       return;
     }
     
     if (window.confirm(`${t('room.confirmDelete')} ${room.number}?`)) {
-      deleteRoom(room.id);
-      toast.success(`${t('room.deleteSuccess')} ${room.number}`);
-      onClose();
-      if (onDelete) onDelete();
+      try {
+        await deleteRoom(room.id);
+        toast.success(`${t('room.deleteSuccess')} ${room.number}`);
+        onClose();
+        if (onDelete) onDelete();
+      } catch (error) {
+        // Error already handled in AppContext
+      }
     }
   };
 
-  const handleSaveRoomInfo = () => {
+  const handleSaveRoomInfo = async () => {
     const price = parseFloat(editedPrice);
     const hourlyRate = parseFloat(editedHourlyRate);
 
@@ -228,14 +256,18 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       return;
     }
 
-    updateRoom(room.id, {
-      type: editedRoomType,
-      price: price,
-      hourlyRate: hourlyRate > 0 ? hourlyRate : undefined,
-      status: editedStatus,
-    });
-    setIsEditing(false);
-    toast.success(`${t('room.updateSuccess')} ${room.number}`);
+    try {
+      await updateRoom(room.id, {
+        type: editedRoomType,
+        price: price,
+        hourlyRate: hourlyRate > 0 ? hourlyRate : undefined,
+        status: editedStatus,
+      });
+      setIsEditing(false);
+      toast.success(`${t('room.updateSuccess')} ${room.number}`);
+    } catch (error) {
+      // Error already handled in AppContext
+    }
   };
 
   const handleCancelEdit = () => {
@@ -650,18 +682,21 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                     <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
                       {t('room.hoursRental')}
                     </Label>
-                    <Select value={hours} onValueChange={setHours}>
-                      <SelectTrigger className="text-xs h-8 mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[...Array(24)].map((_, i) => (
-                          <SelectItem key={i + 1} value={(i + 1).toString()} className="text-xs">
-                            {i + 1} {t('room.hours')} - {formatCurrency((room.hourlyRate || 0) * (i + 1))}₫
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="hours"
+                      type="number"
+                      value={hours}
+                      onChange={(e) => setHours(e.target.value)}
+                      placeholder="3"
+                      className="text-xs h-8 mt-1"
+                      min="1"
+                      required
+                    />
+                    {hours && parseInt(hours) > 0 && (
+                      <p className="text-[10px] text-gray-600 mt-1">
+                        {formatCurrency((room.hourlyRate || 0) * parseInt(hours || '0'))}₫
+                      </p>
+                    )}
                   </Card>
                 ) : (
                   <Card className="p-2 space-y-2">

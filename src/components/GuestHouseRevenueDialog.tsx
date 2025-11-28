@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Card } from './ui/card';
@@ -14,8 +14,13 @@ import {
   Calendar,
   Clock,
   Users,
-  Home
+  Home,
+  Trash2
 } from 'lucide-react';
+import { Button } from './ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { toast } from 'sonner';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface GuestHouseRevenueDialogProps {
   open: boolean;
@@ -32,34 +37,56 @@ interface RevenueData {
 }
 
 export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDialogProps) {
-  const { rooms } = useApp();
+  const { rooms, payments, clearPaymentsByPeriod } = useApp();
   const { t } = useLanguage();
+  const { hasAdvancedReports } = useSubscription({ appSlug: 'guesthouse' });
   const [activeTab, setActiveTab] = useState<'today' | 'month' | 'year'>('today');
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'month' | 'year' | null>(null);
+
+  // Reset to 'today' if advanced reports is disabled and current tab is 'year'
+  useEffect(() => {
+    if (!hasAdvancedReports && activeTab === 'year') {
+      setActiveTab('today');
+    }
+  }, [hasAdvancedReports, activeTab]);
+
+  const handleClearReports = async () => {
+    if (!selectedPeriod) return;
+    
+    try {
+      await clearPaymentsByPeriod(selectedPeriod);
+      setClearDialogOpen(false);
+      setSelectedPeriod(null);
+    } catch (error) {
+      // Error already handled in AppContext
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN').format(amount);
   };
 
-  // Collect all revenue data
+  // Collect revenue data - only from completed payments (checked-out)
+  // Revenue is only calculated when guests check out, not when they check in
   const revenueHistory = useMemo(() => {
     const history: RevenueData[] = [];
     
-    rooms.forEach(room => {
-      if (room.guest) {
-        history.push({
-          date: room.guest.checkInDate,
-          amount: room.guest.totalAmount,
-          roomNumber: room.number,
-          guestName: room.guest.name,
-          isHourly: room.guest.isHourly || false,
-          paymentMethod: t('revenue.paid') // Simplified
-        });
-      }
+    // Only add completed payments (actual revenue from checked-out guests)
+    payments.forEach(payment => {
+      history.push({
+        date: payment.timestamp || payment.checkInDate,
+        amount: payment.total,
+        roomNumber: payment.roomNumber,
+        guestName: payment.guestName,
+        isHourly: payment.roomCharge > 0 && payment.checkInDate !== payment.checkOutDate ? false : true, // Simplified check
+        paymentMethod: payment.paymentMethod
+      });
     });
 
     // Sort by date descending
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [rooms]);
+  }, [payments]);
 
   // Today's revenue
   const todayRevenue = useMemo(() => {
@@ -128,26 +155,86 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-bold flex items-center gap-2">
-            <DollarSign className="w-8 h-8 text-green-600" />
-            {t('revenue.title')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('revenue.description')}
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-3xl font-bold flex items-center gap-2">
+                <DollarSign className="w-8 h-8 text-green-600" />
+                {t('revenue.title')}
+              </DialogTitle>
+              <DialogDescription>
+                {t('revenue.description')}
+              </DialogDescription>
+            </div>
+            <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Reports
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear Reports</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Select the period you want to clear:
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-4">
+                  <Button
+                    variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+                    className="w-full justify-start"
+                    onClick={() => setSelectedPeriod('today')}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Today
+                  </Button>
+                  <Button
+                    variant={selectedPeriod === 'month' ? 'default' : 'outline'}
+                    className="w-full justify-start"
+                    onClick={() => setSelectedPeriod('month')}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    This Month
+                  </Button>
+                  {hasAdvancedReports && (
+                    <Button
+                      variant={selectedPeriod === 'year' ? 'default' : 'outline'}
+                      className="w-full justify-start"
+                      onClick={() => setSelectedPeriod('year')}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      This Year
+                    </Button>
+                  )}
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSelectedPeriod(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearReports}
+                    disabled={!selectedPeriod}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Clear
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${hasAdvancedReports ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="today" className="text-base">
               {t('revenue.today')}
             </TabsTrigger>
             <TabsTrigger value="month" className="text-base">
               {t('revenue.month')}
             </TabsTrigger>
-            <TabsTrigger value="year" className="text-base">
-              {t('revenue.year')}
-            </TabsTrigger>
+            {hasAdvancedReports && (
+              <TabsTrigger value="year" className="text-base">
+                {t('revenue.year')}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Today Tab */}
@@ -314,8 +401,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             </Card>
           </TabsContent>
 
-          {/* Year Tab */}
-          <TabsContent value="year" className="space-y-4">
+          {/* Year Tab - Only shown if advanced_reports is enabled */}
+          {hasAdvancedReports && (
+            <TabsContent value="year" className="space-y-4">
             {/* Export Buttons */}
             <ExportReportButtons
               data={yearRevenue.map(r => ({
@@ -386,6 +474,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               )}
             </Card>
           </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
