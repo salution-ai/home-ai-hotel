@@ -36,47 +36,76 @@ export function LoginScreen() {
   const [hotelName, setHotelName] = useState('');
   const [adminName, setAdminName] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isGoogleReady, setIsGoogleReady] = useState(false);
   const [hiddenGoogleButtonRef, setHiddenGoogleButtonRef] = useState<HTMLDivElement | null>(null);
 
   // Load Google Identity Services script
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Check if script is already loaded
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return;
+    }
+
+    // Check if script is already in the DOM
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existingScript) {
+      // Script exists, wait for it to load
+      const handleLoad = () => initializeGoogle();
+      existingScript.addEventListener('load', handleLoad);
+      // Also check if it's already loaded
+      if (window.google?.accounts?.id) {
+        initializeGoogle();
+      }
+      return () => {
+        existingScript.removeEventListener('load', handleLoad);
+      };
+    }
+
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
+    
+    script.onload = initializeGoogle;
     document.head.appendChild(script);
 
-    script.onload = () => {
+    function initializeGoogle() {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      if (clientId && window.google) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            try {
-              setIsLoggingIn(true);
-              await signInWithGoogle(response.credential);
-              setShowLogin(false);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : 'Google sign-in failed';
-              toast.error(message);
-            } finally {
-              setIsLoggingIn(false);
-            }
-          },
-        });
+      if (clientId && window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response) => {
+              try {
+                setIsLoggingIn(true);
+                await signInWithGoogle(response.credential);
+                setShowLogin(false);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : 'Google sign-in failed';
+                toast.error(message);
+              } finally {
+                setIsLoggingIn(false);
+              }
+            },
+          });
+          setIsGoogleReady(true);
+        } catch (error) {
+          console.error('Failed to initialize Google Sign-In:', error);
+        }
       }
-    };
+    }
 
     return () => {
       // Cleanup if needed
     };
   }, [signInWithGoogle]);
 
-  // Render hidden Google button when component mounts
+  // Render hidden Google button as fallback
   useEffect(() => {
-    if (!window.google || !hiddenGoogleButtonRef) return;
+    if (!isGoogleReady || !hiddenGoogleButtonRef || !window.google?.accounts?.id) return;
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId) return;
@@ -86,7 +115,7 @@ export function LoginScreen() {
 
     // Small delay to ensure DOM is ready
     const timeoutId = setTimeout(() => {
-      if (hiddenGoogleButtonRef && window.google) {
+      if (hiddenGoogleButtonRef && window.google?.accounts?.id) {
         try {
           window.google.accounts.id.renderButton(hiddenGoogleButtonRef, {
             theme: 'outline',
@@ -106,22 +135,38 @@ export function LoginScreen() {
         hiddenGoogleButtonRef.innerHTML = '';
       }
     };
-  }, [hiddenGoogleButtonRef]);
+  }, [hiddenGoogleButtonRef, isGoogleReady]);
 
   // Handle custom Google button click
   const handleGoogleSignIn = () => {
+    if (!isGoogleReady || !window.google?.accounts?.id) {
+      toast.error('Google Sign-In is not ready yet. Please wait a moment and try again.');
+      return;
+    }
+
+    // Try prompt() first (shows One Tap UI if available)
+    try {
+      window.google.accounts.id.prompt();
+    } catch (error) {
+      console.warn('prompt() failed, trying button click:', error);
+    }
+
+    // Also try clicking the hidden button as fallback/alternative
+    // This ensures sign-in works even if One Tap was dismissed
     if (hiddenGoogleButtonRef) {
-      // Find and click the actual Google button inside the hidden container
-      const googleButton = hiddenGoogleButtonRef.querySelector('div[role="button"], button') as HTMLElement;
-      if (googleButton) {
-        googleButton.click();
-      } else {
-        // Fallback: try clicking the container itself
-        const clickableElement = hiddenGoogleButtonRef.querySelector('[id^="gsi"]') as HTMLElement;
-        if (clickableElement) {
-          clickableElement.click();
+      // Wait a bit for the button to be rendered if it wasn't yet
+      setTimeout(() => {
+        const googleButton = hiddenGoogleButtonRef.querySelector('div[role="button"], button') as HTMLElement;
+        if (googleButton) {
+          googleButton.click();
+        } else {
+          // Try finding by ID pattern
+          const clickableElement = hiddenGoogleButtonRef.querySelector('[id^="gsi"]') as HTMLElement;
+          if (clickableElement) {
+            clickableElement.click();
+          }
         }
-      }
+      }, 100);
     }
   };
 
@@ -206,7 +251,7 @@ export function LoginScreen() {
             {t('login.login') || 'Login'}
           </Button>
           
-          {/* Hidden Google button container */}
+          {/* Hidden Google button container (used as fallback) */}
           <div 
             ref={(el) => setHiddenGoogleButtonRef(el)} 
             className="hidden"
@@ -220,7 +265,7 @@ export function LoginScreen() {
             onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-2"
             size="lg"
-            disabled={loading || isLoggingIn}
+            disabled={loading || isLoggingIn || !isGoogleReady}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
