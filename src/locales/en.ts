@@ -219,6 +219,8 @@ export const en = {
   'add.buildingDescriptionPlaceholder': 'e.g., Back area, near main gate...',
   'add.addBuildingBoarding': 'Add Building',
   'add.buildingAddedBoarding': 'Building added',
+  'add.maxBuildingsReached': 'Maximum building limit reached. Upgrade to Premium for unlimited buildings.',
+  'add.maxRoomsReached': 'Maximum rooms limit reached. Upgrade to Premium for unlimited rooms.',
   'login.tagline': 'One Screen, One Touch',
   'login.guestMode': 'Continue with Guest Mode',
   'login.setupTitle': 'Setup Hotel',
@@ -398,6 +400,7 @@ export const en = {
   'export.pdfError': 'Error exporting PDF',
   'export.excel': 'Export Excel',
   'export.pdf': 'Export PDF',
+  'export.premiumRequired': 'Export to Excel requires Premium subscription',
   
   // Help Dialog
   'help.guesthouseTitle': 'User Guide - Guest House',

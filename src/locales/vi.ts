@@ -217,6 +217,8 @@ export const vi = {
   'add.buildingDescriptionPlaceholder': 'VD: Khu phía sau, gần cổng chính...',
   'add.addBuildingBoarding': 'Thêm Khu Nhà',
   'add.buildingAddedBoarding': 'Đã thêm khu nhà',
+  'add.maxBuildingsReached': 'Đã đạt giới hạn tối đa khu nhà. Nâng cấp Premium để không giới hạn khu nhà.',
+  'add.maxRoomsReached': 'Đã đạt giới hạn tối đa phòng. Nâng cấp Premium để không giới hạn phòng.',
   'login.tagline': 'Một màn hình, Một chạm',
   'login.guestMode': 'Tiếp tục với chế độ khách',
   'login.setupTitle': 'Thiết lập Khách sạn',
@@ -398,6 +400,7 @@ export const vi = {
   'export.pdfError': 'Lỗi khi xuất PDF',
   'export.excel': 'Xuất Excel',
   'export.pdf': 'Xuất PDF',
+  'export.premiumRequired': 'Xuất Excel yêu cầu gói Premium',
   
   // Help Dialog
   'help.guesthouseTitle': 'Hướng Dẫn Sử Dụng - Nhà Nghỉ',
