@@ -211,7 +211,7 @@ export function GuestHouseLiveGrid() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Top Row */}
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -315,18 +315,40 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-lg text-gray-600 truncate">Revenue Report</p>
+                  <p className="text-xs sm:text-lg text-gray-600 truncate">{t('revenue.title')}</p>
                   <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">👆 {t('dashboard.clickToViewDetails')}</p>
                 </div>
                 <DollarSign className="w-8 h-8 sm:w-12 sm:h-12 text-green-400 flex-shrink-0 ml-1" />
               </div>
             </Card>
           </div>
+
+          {/* Legend */}
+          <div className="mt-3 sm:mt-4 bg-white/95 backdrop-blur rounded-lg p-2.5 sm:p-4 border-0 shadow-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-blue-500 border-2 border-blue-700 rounded flex-shrink-0"></div>
+                <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.hourlyRent')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-green-500 border-2 border-green-700 rounded flex-shrink-0"></div>
+                <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.dailyRent')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-yellow-400 border-2 border-yellow-600 rounded flex-shrink-0"></div>
+                <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.needsCleaning')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-4 h-4 sm:w-6 sm:h-6 bg-gray-300 border-2 border-gray-500 rounded flex-shrink-0"></div>
+                <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.vacantRoom')}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Room Grid */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pt-96 sm:pt-80">
         <div className="space-y-6">
           {(() => {
             // Get all buildings that have rooms, including ones not in hotel.buildings
@@ -828,29 +850,6 @@ export function GuestHouseLiveGrid() {
         >
           <Plus className={`w-7 h-7 sm:w-8 sm:h-8 transition-transform ${fabMenuOpen ? 'rotate-45' : ''}`} />
         </Button>
-      </div>
-
-      {/* Legend */}
-      <div className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 bg-white rounded-lg shadow-lg p-2.5 sm:p-4 border-2 z-30 max-w-[140px] sm:max-w-none">
-        <p className="text-xs sm:text-base font-bold mb-2 sm:mb-3 text-gray-800">{t('legend.title')}</p>
-        <div className="space-y-1.5 sm:space-y-2">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-blue-500 border-2 border-blue-700 rounded flex-shrink-0"></div>
-            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.hourlyRent')}</span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-green-500 border-2 border-green-700 rounded flex-shrink-0"></div>
-            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.dailyRent')}</span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-yellow-400 border-2 border-yellow-600 rounded flex-shrink-0"></div>
-            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.needsCleaning')}</span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-4 h-4 sm:w-6 sm:h-6 bg-gray-300 border-2 border-gray-500 rounded flex-shrink-0"></div>
-            <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.vacantRoom')}</span>
-          </div>
-        </div>
       </div>
 
       {/* Dialogs */}

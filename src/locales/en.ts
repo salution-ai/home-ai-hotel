@@ -135,6 +135,12 @@ export const en = {
   'menu.staffRole': 'Role',
   'menu.staffAdded': 'Staff added',
   'menu.hotelUpdated': 'Hotel information updated successfully!',
+  'menu.taxCode': 'Tax Code',
+  'menu.taxCodePlaceholder': 'e.g., 0123456789',
+  'menu.phoneNumber': 'Phone Number',
+  'menu.phoneNumberPlaceholder': 'e.g., 0901234567',
+  'menu.email': 'Email',
+  'menu.emailPlaceholder': 'e.g., hotel@example.com',
   
   // Add Dialogs
   'add.roomTitle': 'Add New Room',
@@ -305,6 +311,7 @@ export const en = {
   'payment.address': 'Address',
   'payment.phoneLabel': 'Phone',
   'payment.taxCode': 'Tax Code',
+  'payment.email': 'Email',
   'payment.errorInvoiceInfo': 'Please enter complete invoice information',
   'payment.invoiceSuccess': 'Invoice created successfully! Invoice No.',
   'payment.invoiceError': 'Error saving invoice',
@@ -376,7 +383,7 @@ export const en = {
   'bank.accountHolderHint': 'Enter uppercase, no accents',
   'bank.note': 'Note:',
   'bank.note1': 'This information will be displayed to Receptionist when paying',
-  'bank.note2': 'QR code will be automatically generated from this information',
+  'bank.note2': 'QR code will be automatically generated from this information for Premium users, if QR code isn\'t generated, then your bank isn\'t supported by VietQR',
   'bank.note3': 'You can edit this information at any time',
   'bank.cancel': 'Cancel',
   'bank.save': 'Save Changes',
@@ -595,7 +602,7 @@ export const en = {
   'premium.feature2': 'Advanced reporting',
   'premium.feature3': 'Priority support',
   'premium.feature4': 'Export to Excel/PDF',
-  'premium.feature5': 'Bank account management',
+  'premium.feature5': 'Receipt with bank QR code',
   'premium.choosePlan': 'Choose a plan:',
   'premium.month': 'Month',
   'premium.year': 'Year',
@@ -604,5 +611,9 @@ export const en = {
   'premium.extendSuccess': 'Premium subscription extended!',
   'premium.remainingDays': '{days} days remaining',
   'premium.extend': 'Extend',
+
+  // Subscription banner
+  'subscription.freePlanTitle': 'Free Plan - Limited to 10 rooms',
+  'subscription.upgradeButton': 'Upgrade',
 } as const;
 

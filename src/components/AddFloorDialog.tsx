@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { PremiumDialog } from './PremiumDialog';
 
 interface AddFloorDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
   const [floorNumber, setFloorNumber] = useState<number>(1);
   const [floorName, setFloorName] = useState<string>('');
   const [numberOfRooms, setNumberOfRooms] = useState<number>(10);
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
   // Set default building when dialog opens
   useEffect(() => {
@@ -67,19 +69,12 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       return;
     }
 
-    // Check room limit (maxRooms is never null now, defaults to 10 for free plan)
-    if (maxRooms !== -1) {
-      const currentRoomCount = rooms.length;
-      const roomsAfterAdd = currentRoomCount + numberOfRooms;
-      if (roomsAfterAdd > maxRooms) {
-        const availableSlots = maxRooms - currentRoomCount;
-        if (availableSlots <= 0) {
-          toast.error(`Room limit reached. Your plan allows up to ${maxRooms} rooms. Please upgrade to add more rooms.`);
-          return;
-        }
-        toast.error(`You can only add ${availableSlots} more room(s). Your plan allows up to ${maxRooms} rooms. Please upgrade to add more.`);
-        return;
-      }
+    // Check room limit (following CV_Online pattern)
+    if (maxRooms !== -1 && rooms.length + numberOfRooms > maxRooms) {
+      const availableSlots = maxRooms - rooms.length;
+      setShowPremiumDialog(true);
+      toast.error(t('add.maxRoomsReached') || `Cannot add ${numberOfRooms} rooms. Only ${availableSlots} room${availableSlots !== 1 ? 's' : ''} available. Upgrade to Premium for unlimited rooms.`);
+      return;
     }
 
     // Check if floor already exists in the selected building
@@ -265,6 +260,11 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
           </div>
         </form>
       </DialogContent>
+      <PremiumDialog 
+        open={showPremiumDialog} 
+        onOpenChange={setShowPremiumDialog}
+        onUpgradeSuccess={() => setShowPremiumDialog(false)}
+      />
     </Dialog>
   );
 }

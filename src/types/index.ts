@@ -156,4 +156,7 @@ export interface Hotel {
     accountNumber: string;
     accountHolder: string;
   };
+  taxCode?: string;
+  phoneNumber?: string;
+  email?: string;
 }

@@ -14,6 +14,7 @@ import { useBusinessModel } from '../hooks/useBusinessModel';
 import { MoneyInput } from './MoneyInput';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { PremiumDialog } from './PremiumDialog';
 
 interface AddRoomDialogProps {
   open: boolean;
@@ -25,25 +26,24 @@ interface AddRoomDialogProps {
 export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: AddRoomDialogProps) {
   const { hotel, addRoom, businessModel, rooms } = useApp();
   const { t } = useLanguage();
-  const { maxRooms, loading: subscriptionLoading } = useSubscription({ appSlug: 'guesthouse' });
+  const { maxRooms } = useSubscription({ appSlug: 'guesthouse' });
   const [roomNumber, setRoomNumber] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || defaultBuildingId || '');
   const [selectedFloor, setSelectedFloor] = useState('1');
   const [roomType, setRoomType] = useState<RoomType>('Single');
   const [price, setPrice] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const isGuesthouse = businessModel === 'guesthouse';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check room limit (maxRooms is never null now, defaults to 10 for free plan)
-    if (maxRooms !== -1) {
-      const currentRoomCount = rooms.length;
-      if (currentRoomCount >= maxRooms) {
-        toast.error(`Room limit reached. Your plan allows up to ${maxRooms} rooms. Please upgrade to add more rooms.`);
-        return;
-      }
+    // Check room limit (following CV_Online pattern)
+    if (maxRooms !== -1 && rooms.length >= maxRooms) {
+      setShowPremiumDialog(true);
+      toast.error(t('add.maxRoomsReached') || `Maximum ${maxRooms} rooms reached. Upgrade to Premium for unlimited rooms.`);
+      return;
     }
 
     if (!roomNumber.trim()) {
@@ -370,6 +370,11 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           </div>
         </form>
       </DialogContent>
+      <PremiumDialog 
+        open={showPremiumDialog} 
+        onOpenChange={setShowPremiumDialog}
+        onUpgradeSuccess={() => setShowPremiumDialog(false)}
+      />
     </Dialog>
   );
 }

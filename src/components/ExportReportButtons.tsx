@@ -1,6 +1,6 @@
 'use client'
 
-import { FileSpreadsheet, FileText, Lock } from 'lucide-react';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSubscription } from '../hooks/useSubscription';
+import { PremiumDialog } from './PremiumDialog';
+import { useState } from 'react';
 
 interface ExportData {
   date?: string;
@@ -47,7 +49,8 @@ interface ExportReportButtonsProps {
 
 export function ExportReportButtons({ data, reportType, period, summary, viewMode = 'month' }: ExportReportButtonsProps) {
   const { t } = useLanguage();
-  const { canExportReports, loading: subscriptionLoading } = useSubscription({ appSlug: 'guesthouse' });
+  const { canExportReports } = useSubscription({ appSlug: 'guesthouse' });
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   
   // Compact currency format for PDF (removes trailing zeros)
   const formatCurrencyCompact = (amount: number): string => {
@@ -63,8 +66,10 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
   };
 
   const exportToExcel = () => {
+    // Check export permission (following CV_Online pattern)
     if (!canExportReports) {
-      toast.error('Export reports is not available in your plan. Please upgrade to Premium to export reports.');
+      setShowPremiumDialog(true);
+      toast.error(t('export.premiumRequired') || 'Export to Excel requires Premium subscription');
       return;
     }
 
@@ -205,8 +210,10 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
   };
 
   const exportToPDF = () => {
+    // Check export permission (following CV_Online pattern)
     if (!canExportReports) {
-      toast.error('Export reports is not available in your plan. Please upgrade to Premium to export reports.');
+      setShowPremiumDialog(true);
+      toast.error(t('export.premiumRequired') || 'Export to PDF requires Premium subscription');
       return;
     }
 
@@ -427,47 +434,35 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
     }
   };
 
-  if (!canExportReports) {
-    return (
+  return (
+    <>
       <div className="flex gap-2">
         <Button
-          disabled
+          onClick={exportToExcel}
           variant="outline"
-          className="flex-1 bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed"
+          disabled={!canExportReports}
+          className={`flex-1 bg-green-50 hover:bg-green-100 border-green-300 text-green-700 ${!canExportReports ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={!canExportReports ? (t('export.premiumRequired') || 'Premium required') : ''}
         >
-          <Lock className="w-4 h-4 mr-2" />
+          <FileSpreadsheet className="w-4 h-4 mr-2" />
           {t('export.excel')}
         </Button>
         <Button
-          disabled
+          onClick={exportToPDF}
           variant="outline"
-          className="flex-1 bg-gray-50 border-gray-300 text-gray-500 cursor-not-allowed"
+          disabled={!canExportReports}
+          className={`flex-1 bg-red-50 hover:bg-red-100 border-red-300 text-red-700 ${!canExportReports ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={!canExportReports ? (t('export.premiumRequired') || 'Premium required') : ''}
         >
-          <Lock className="w-4 h-4 mr-2" />
+          <FileText className="w-4 h-4 mr-2" />
           {t('export.pdf')}
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="flex gap-2">
-      <Button
-        onClick={exportToExcel}
-        variant="outline"
-        className="flex-1 bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
-      >
-        <FileSpreadsheet className="w-4 h-4 mr-2" />
-        {t('export.excel')}
-      </Button>
-      <Button
-        onClick={exportToPDF}
-        variant="outline"
-        className="flex-1 bg-red-50 hover:bg-red-100 border-red-300 text-red-700"
-      >
-        <FileText className="w-4 h-4 mr-2" />
-        {t('export.pdf')}
-      </Button>
-    </div>
+      <PremiumDialog 
+        open={showPremiumDialog} 
+        onOpenChange={setShowPremiumDialog}
+        onUpgradeSuccess={() => setShowPremiumDialog(false)}
+      />
+    </>
   );
 }

@@ -43,7 +43,7 @@ export function SubscriptionStatus({ appSlug = 'guesthouse', className }: Subscr
     return (
       <Card className={`p-3 bg-gray-50 border-gray-200 ${className || ''}`}>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Loading subscription...</span>
+          <span className="text-sm text-gray-600">{t('common.loading' as any) || 'Loading subscription...'}</span>
         </div>
       </Card>
     );
@@ -56,10 +56,12 @@ export function SubscriptionStatus({ appSlug = 'guesthouse', className }: Subscr
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-yellow-800">Free Plan - Limited to 10 rooms</span>
+              <span className="text-sm text-yellow-800">
+                {t('subscription.freePlanTitle' as any) || 'Free Plan - Limited to 10 rooms'}
+              </span>
             </div>
             <Button size="sm" variant="outline" onClick={() => setShowPremiumDialog(true)}>
-              Upgrade
+              {t('subscription.upgradeButton' as any) || 'Upgrade'}
             </Button>
           </div>
         </Card>

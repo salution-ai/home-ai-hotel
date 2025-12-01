@@ -52,28 +52,34 @@ export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptio
     if (!subscription || subscription.status !== 'active') {
       return false;
     }
-    return subscription.features[feature] === true;
+    const featureValue = subscription.features[feature];
+    if (featureValue === true) return true;
+    if (typeof featureValue === 'number') return featureValue > 0 || featureValue === -1;
+    if (featureValue === 'all') return true;
+    return false;
   };
 
   const getFeature = <T = unknown>(feature: string): T | undefined => {
+    // Return feature value if subscription exists, otherwise undefined
     if (!subscription || subscription.status !== 'active') {
       return undefined;
     }
     return subscription.features[feature] as T | undefined;
   };
 
-  // Default to free plan limits if no subscription or not active
-  // Free plan: max_rooms: 10, max_buildings: 1
-  const maxRooms = subscription && subscription.status === 'active'
-    ? (subscription.features.max_rooms as number | undefined) ?? 10
-    : 10; // Default to free plan limit
+  // Free tier: max 8 rooms, max 1 building
+  // Premium: unlimited (-1)
+  const isPremium = subscription?.status === 'active' && subscription.planSlug === 'premium';
+  const maxRooms = isPremium 
+    ? -1 // Unlimited for premium
+    : (subscription?.features.max_rooms as number | undefined) ?? 8; // Default to 8 for free
+  
+  const maxBuildings = isPremium
+    ? -1 // Unlimited for premium
+    : (subscription?.features.max_buildings as number | undefined) ?? 1; // Default to 1 for free
 
-  const maxBuildings = subscription && subscription.status === 'active'
-    ? (subscription.features.max_buildings as number | undefined) ?? 1
-    : 1; // Default to free plan limit
-
-  const canExportReports = hasFeature('export_reports');
-  const hasAdvancedReports = hasFeature('advanced_reports');
+  const canExportReports = isPremium || hasFeature('export_reports');
+  const hasAdvancedReports = isPremium || hasFeature('advanced_reports');
 
   return {
     subscription,

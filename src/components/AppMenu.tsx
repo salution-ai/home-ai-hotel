@@ -12,7 +12,7 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { BankAccountManagement } from './BankAccountManagement';
 import { SubscriptionStatus } from './SubscriptionStatus';
@@ -34,8 +34,22 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [staffRole, setStaffRole] = useState<'receptionist' | 'housekeeping'>('receptionist');
   const [hotelName, setHotelName] = useState(hotel?.name || '');
   const [hotelAddress, setHotelAddress] = useState(hotel?.address || '');
+  const [taxCode, setTaxCode] = useState(hotel?.taxCode || '');
+  const [phoneNumber, setPhoneNumber] = useState(hotel?.phoneNumber || '');
+  const [email, setEmail] = useState(hotel?.email || '');
 
   const isAdmin = user?.role === 'admin';
+
+  // Sync form state when hotel changes
+  useEffect(() => {
+    if (hotel) {
+      setHotelName(hotel.name || '');
+      setHotelAddress(hotel.address || '');
+      setTaxCode(hotel.taxCode || '');
+      setPhoneNumber(hotel.phoneNumber || '');
+      setEmail(hotel.email || '');
+    }
+  }, [hotel]);
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +176,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                await updateHotelInfo(hotelName, hotelAddress);
+                await updateHotelInfo(hotelName, hotelAddress, taxCode || undefined, phoneNumber || undefined, email || undefined);
                 toast.success(t('menu.hotelUpdated'));
                 setShowHotelConfig(false);
               } catch (error) {
@@ -189,6 +203,34 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 onChange={(e) => setHotelAddress(e.target.value)}
                 placeholder="123 Đường ABC, Quận XYZ, TP. Hồ Chí Minh"
                 rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tax-code">{t('menu.taxCode')}</Label>
+              <Input
+                id="tax-code"
+                value={taxCode}
+                onChange={(e) => setTaxCode(e.target.value)}
+                placeholder={t('menu.taxCodePlaceholder')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone-number">{t('menu.phoneNumber')}</Label>
+              <Input
+                id="phone-number"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder={t('menu.phoneNumberPlaceholder')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">{t('menu.email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('menu.emailPlaceholder')}
               />
             </div>
             <Button type="submit" className="w-full">

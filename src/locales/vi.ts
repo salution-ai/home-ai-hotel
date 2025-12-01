@@ -133,6 +133,12 @@ export const vi = {
   'menu.staffRole': 'Vai trò',
   'menu.staffAdded': 'Đã thêm nhân viên',
   'menu.hotelUpdated': 'Cập nhật thông tin khách sạn thành công!',
+  'menu.taxCode': 'Mã số thuế',
+  'menu.taxCodePlaceholder': 'VD: 0123456789',
+  'menu.phoneNumber': 'Số điện thoại',
+  'menu.phoneNumberPlaceholder': 'VD: 0901234567',
+  'menu.email': 'Email',
+  'menu.emailPlaceholder': 'VD: hotel@example.com',
   
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',
@@ -305,6 +311,7 @@ export const vi = {
   'payment.address': 'Địa chỉ',
   'payment.phoneLabel': 'SĐT',
   'payment.taxCode': 'MST',
+  'payment.email': 'Email',
   'payment.errorInvoiceInfo': 'Vui lòng nhập đầy đủ thông tin hóa đơn',
   'payment.invoiceSuccess': 'Đã tạo hóa đơn thành công! Số HĐ',
   'payment.invoiceError': 'Lỗi khi lưu hóa đơn',
@@ -376,7 +383,7 @@ export const vi = {
   'bank.accountHolderHint': 'Nhập chữ in hoa, không dấu',
   'bank.note': 'Lưu ý:',
   'bank.note1': 'Thông tin này sẽ hiển thị cho Lễ tân khi thanh toán',
-  'bank.note2': 'Mã QR sẽ được tạo tự động từ thông tin này',
+  'bank.note2': 'Mã QR sẽ được tạo tự động từ thông tin này cho người dùng Premium, nếu mã QR không được tạo thì ngân hàng của bạn không được VietQR hỗ trợ',
   'bank.note3': 'Bạn có thể chỉnh sửa thông tin bất cứ lúc nào',
   'bank.cancel': 'Hủy',
   'bank.save': 'Lưu thay đổi',
@@ -595,7 +602,7 @@ export const vi = {
   'premium.feature2': 'Báo cáo nâng cao',
   'premium.feature3': 'Hỗ trợ ưu tiên',
   'premium.feature4': 'Xuất Excel/PDF',
-  'premium.feature5': 'Quản lý tài khoản ngân hàng',
+  'premium.feature5': 'Hóa đơn có mã QR ngân hàng',
   'premium.choosePlan': 'Chọn gói:',
   'premium.month': 'Tháng',
   'premium.year': 'Năm',
@@ -604,5 +611,9 @@ export const vi = {
   'premium.extendSuccess': 'Gia hạn Premium thành công!',
   'premium.remainingDays': 'Còn {days} ngày',
   'premium.extend': 'Gia hạn',
+
+  // Subscription banner
+  'subscription.freePlanTitle': 'Gói miễn phí - Giới hạn 10 phòng',
+  'subscription.upgradeButton': 'Nâng cấp',
 } as const;
 

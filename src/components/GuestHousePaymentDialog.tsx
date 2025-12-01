@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
 import { generateVietQRUrl } from '../utils/vietnameseBanks';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface GuestHousePaymentDialogProps {
   room: Room;
@@ -40,8 +41,13 @@ export function GuestHousePaymentDialog({
 }: GuestHousePaymentDialogProps) {
   const { hotel } = useApp();
   const { t } = useLanguage();
+  const { subscription } = useSubscription({ appSlug: 'guesthouse' });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [step, setStep] = useState<'select' | 'receipt'>('select');
+  
+  // Check if QR code feature is available (Premium only)
+  const isPremium = subscription?.status === 'active' && subscription.planSlug === 'premium';
+  const canGenerateQR = isPremium;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN').format(value);
@@ -472,6 +478,21 @@ export function GuestHousePaymentDialog({
                     {t('payment.address')}: {hotel.address}
                   </p>
                 )}
+                {hotel?.taxCode && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {t('payment.taxCode')}: {hotel.taxCode}
+                  </p>
+                )}
+                {hotel?.phoneNumber && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {t('payment.phoneLabel')}: {hotel.phoneNumber}
+                  </p>
+                )}
+                {hotel?.email && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {t('payment.email')}: {hotel.email}
+                  </p>
+                )}
                 <Separator className="my-2" />
                 <p className="text-sm text-gray-600 font-semibold mt-2">{t('payment.receiptHeader')}</p>
                 <p className="text-xs text-gray-500">{formatDate()}</p>
@@ -566,8 +587,8 @@ export function GuestHousePaymentDialog({
                     </span>
                   </div>
 
-                  {/* VietQR Code Section */}
-                  {hotel?.bankAccount && getVietQRUrl() && (
+                  {/* VietQR Code Section - Premium only */}
+                  {canGenerateQR && hotel?.bankAccount && getVietQRUrl() && (
                     <div className="qr-section">
                       <div className="qr-container-no-print flex flex-col items-center space-y-2 pt-4">
                         <p className="text-xs text-gray-600 text-center">

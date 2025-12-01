@@ -8,6 +8,7 @@ import { hotelApi, buildingApi, roomApi, paymentApi, staffApi } from '../utils/a
 import { authApi } from '../utils/api/auth';
 import { ApiClientError } from '../utils/api';
 import { saveAuthState, loadAuthState, clearAuthState, migrateOldTokens, type AuthUser, type AuthTokens } from '../utils/auth';
+import { subscriptionApi, type Subscription } from '../utils/api/subscriptions';
 import { toast } from 'sonner';
 
 interface AppContextType {
@@ -27,7 +28,7 @@ interface AppContextType {
   markRoomCleaned: (roomId: string) => Promise<void>;
   addStaff: (email: string, name: string, role: 'receptionist' | 'housekeeping') => Promise<void>;
   setupHotel: (hotelName: string, adminEmail: string, adminName: string, businessModel: BusinessModel) => Promise<void>;
-  updateHotelInfo: (name: string, address: string) => Promise<void>;
+  updateHotelInfo: (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => Promise<void>;
   updateBankAccount: (bankAccount: { bankName: string; bankCode: string; accountNumber: string; accountHolder: string }) => Promise<void>;
   addPayment: (payment: Payment, roomId?: string) => Promise<void>;
   clearPaymentsByPeriod: (period: 'today' | 'month' | 'year') => Promise<void>;
@@ -52,6 +53,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   const [loading, setLoading] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
   
+  // Subscription state (following CV_Online pattern)
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  
   // Auth state management (following CV_Online pattern)
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [accessTokenExpiry, setAccessTokenExpiry] = useState<number | null>(null);
@@ -59,6 +64,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   const refreshTokenRef = useRef<string | null>(null);
   const isInitializedRef = useRef(false);
   const isLoadingHotelRef = useRef(false);
+  const isLoggingInRef = useRef(false);
 
   // Clear access token refresh timeout
   const clearAccessTokenRefreshTimeout = useCallback(() => {
@@ -84,6 +90,24 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     },
     [clearAccessTokenRefreshTimeout],
   );
+
+  // Check subscription status (following CV_Online pattern)
+  const checkSubscription = useCallback(async (token: string) => {
+    try {
+      const sub = await subscriptionApi.getByApp('guesthouse');
+      if (sub && sub.status === 'active') {
+        setSubscription(sub);
+        setIsPremium(sub.planSlug === 'premium');
+      } else {
+        setSubscription(null);
+        setIsPremium(false);
+      }
+    } catch (error) {
+      // Subscription check failed, assume free
+      setSubscription(null);
+      setIsPremium(false);
+    }
+  }, []);
 
   // Refresh auth state (proactive token refresh)
   const refreshAuth = useCallback(async () => {
@@ -120,6 +144,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       scheduleAccessTokenRefresh(tokens.accessTokenExpiresIn, async () => {
         await refreshAuth();
       });
+      await checkSubscription(tokens.accessToken);
     } catch (error) {
       clearAccessTokenRefreshTimeout();
       clearAuthState();
@@ -129,7 +154,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       refreshTokenRef.current = null;
       setIsGuestMode(true);
     }
-  }, [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh]);
+  }, [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, checkSubscription]);
 
   // Apply auth success (used after login/signup)
   const applyAuthSuccess = useCallback(
@@ -153,7 +178,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       saveAuthState(authUser, tokens);
       setIsGuestMode(false);
     },
-    [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, refreshAuth],
+    [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, refreshAuth, checkSubscription],
   );
 
   // Load hotel and related data
@@ -163,11 +188,14 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     // Prevent concurrent calls that could create duplicate hotels
     if (isLoadingHotelRef.current) {
+      console.log('loadHotelData: Already loading, skipping duplicate call');
       return;
     }
 
+    // Set flag immediately to prevent race conditions
+    isLoadingHotelRef.current = true;
+
     try {
-      isLoadingHotelRef.current = true;
       let hotelData = await hotelApi.get();
       
       // If no hotel exists, create one automatically with name "My Hotel"
@@ -317,6 +345,9 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           await refreshAuth();
         });
         
+        // Check subscription status (following CV_Online pattern)
+        await checkSubscription(stored.accessToken);
+        
         // Clear any localStorage demo data to prevent conflicts
         localStorage.removeItem('hotel-app-hotel');
         localStorage.removeItem('hotel-app-user');
@@ -409,6 +440,9 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
               await refreshAuth();
             });
             
+            // Check subscription status (following CV_Online pattern)
+            await checkSubscription(refreshed.tokens.accessToken);
+            
             // Ensure we're in API mode and load data
             setIsGuestMode(false);
             await loadHotelData(authenticatedUser);
@@ -445,7 +479,9 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   // Load data when user changes (e.g., after login)
   // This ensures data loads after login even if login function's loadHotelData call has timing issues
   useEffect(() => {
-    if (user && !isGuestMode && !hotel && !loading) {
+    // Skip if we're in the middle of a login flow (login function will handle it)
+    // or if hotel data is already being loaded
+    if (user && !isGuestMode && !hotel && !loading && !isLoggingInRef.current && !isLoadingHotelRef.current) {
       // User is set but hotel data hasn't loaded yet - load it
       loadHotelData(user);
     }
@@ -574,10 +610,20 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       return;
     }
 
+    // Prevent concurrent login attempts
+    if (isLoggingInRef.current) {
+      console.log('Login already in progress, skipping duplicate call');
+      return;
+    }
+
     // API mode (following CV_Online pattern)
+    isLoggingInRef.current = true;
     try {
       const { user: authUser, tokens } = await authApi.login({ username, password });
       applyAuthSuccess(authUser, tokens);
+      
+      // Check subscription status (following CV_Online pattern)
+      await checkSubscription(tokens.accessToken);
       
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
@@ -598,16 +644,28 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       const message = error instanceof Error ? error.message : 'Login failed';
       toast.error(message);
       throw error;
+    } finally {
+      isLoggingInRef.current = false;
     }
   };
 
   const signInWithGoogle = async (idToken: string) => {
+    // Prevent concurrent Google sign-in attempts
+    if (isLoggingInRef.current) {
+      console.log('Login already in progress, skipping duplicate call');
+      return;
+    }
+
     // API mode only (following CV_Online pattern)
+    isLoggingInRef.current = true;
     try {
       // Set loading to true BEFORE applyAuthSuccess to prevent useEffect from triggering
       setLoading(true);
       const { user: authUser, tokens } = await authApi.googleAuth({ idToken });
       applyAuthSuccess(authUser, tokens);
+      
+      // Check subscription status (following CV_Online pattern)
+      await checkSubscription(tokens.accessToken);
       
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
@@ -631,6 +689,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       toast.error(message);
       setLoading(false); // Ensure loading is reset on error
       throw error;
+    } finally {
+      isLoggingInRef.current = false;
     }
   };
 
@@ -775,24 +835,18 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     if (!hotel) return;
 
     try {
-      // Use provided roomId if available, otherwise find room by room number
+      // Fetch room from backend to ensure we have the most up-to-date data
+      // This prevents race conditions after checkout when local state might be stale
       let room;
       if (roomId) {
-        room = rooms.find(r => r.id === roomId);
+        // Fetch directly from backend to avoid stale local state
+        room = await roomApi.get(roomId);
       } else {
+        // Fallback: find by room number from local state if roomId not provided
+        // Backend will validate the room belongs to the hotel anyway
         room = rooms.find(r => r.number === payment.roomNumber);
-      }
-      
-      if (!room) {
-        toast.error('Room not found');
-        return;
-      }
-
-      // Verify the room belongs to the current hotel (safety check)
-      if (room.buildingId && hotel.buildings) {
-        const building = hotel.buildings.find(b => b.id === room.buildingId);
-        if (!building) {
-          toast.error('Room does not belong to this hotel');
+        if (!room) {
+          toast.error('Room not found');
           return;
         }
       }
@@ -992,16 +1046,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     await refreshData();
   };
 
-  const updateHotelInfo = async (name: string, address: string) => {
+  const updateHotelInfo = async (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => {
     if (!hotel) return;
 
     if (isGuestMode) {
-      setHotel({ ...hotel, name, address });
+      setHotel({ ...hotel, name, address, taxCode, phoneNumber, email });
       return;
     }
 
     try {
-      const updated = await hotelApi.update(hotel.id, { name, address });
+      const updated = await hotelApi.update(hotel.id, { name, address, taxCode, phoneNumber, email });
       setHotel(updated);
     } catch (error) {
       if (error instanceof ApiClientError) {

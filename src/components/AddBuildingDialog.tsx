@@ -10,6 +10,7 @@ import { Building, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSubscription } from '../hooks/useSubscription';
+import { PremiumDialog } from './PremiumDialog';
 
 interface AddBuildingDialogProps {
   open: boolean;
@@ -22,17 +23,16 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
   const { maxBuildings } = useSubscription({ appSlug: 'guesthouse' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check building limit (maxBuildings is never null now, defaults to 1 for free plan)
-    if (maxBuildings !== -1) {
-      const currentBuildingCount = hotel?.buildings.length || 0;
-      if (currentBuildingCount >= maxBuildings) {
-        toast.error(`Building limit reached. Your plan allows up to ${maxBuildings} building(s). Please upgrade to add more buildings.`);
-        return;
-      }
+    // Check building limit (following CV_Online pattern)
+    if (maxBuildings !== -1 && (hotel?.buildings.length || 0) >= maxBuildings) {
+      setShowPremiumDialog(true);
+      toast.error(t('add.maxBuildingsReached') || `Maximum ${maxBuildings} building reached. Upgrade to Premium for unlimited buildings.`);
+      return;
     }
 
     if (!name.trim()) {
@@ -133,6 +133,11 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
           </div>
         </form>
       </DialogContent>
+      <PremiumDialog 
+        open={showPremiumDialog} 
+        onOpenChange={setShowPremiumDialog}
+        onUpgradeSuccess={() => setShowPremiumDialog(false)}
+      />
     </Dialog>
   );
 }

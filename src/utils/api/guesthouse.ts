@@ -16,6 +16,9 @@ export interface BackendHotel {
   bankCode: string | null;
   accountNumber: string | null;
   accountHolder: string | null;
+  taxCode: string | null;
+  phoneNumber: string | null;
+  email: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,6 +112,9 @@ function convertHotel(backend: BackendHotel): Hotel {
           accountHolder: backend.accountHolder || '',
         }
       : undefined,
+    taxCode: backend.taxCode || undefined,
+    phoneNumber: backend.phoneNumber || undefined,
+    email: backend.email || undefined,
   };
 }
 
@@ -210,6 +216,9 @@ export const hotelApi = {
     bankCode?: string;
     accountNumber?: string;
     accountHolder?: string;
+    taxCode?: string;
+    phoneNumber?: string;
+    email?: string;
   }): Promise<Hotel> => {
     const response = await api.put<{ hotel: BackendHotel }>(`/guesthouse/hotels/${hotelId}`, data);
     return convertHotel(response.hotel);

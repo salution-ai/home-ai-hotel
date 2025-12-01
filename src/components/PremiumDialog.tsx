@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
 import { toast } from 'sonner';
-import { X, Star, Check } from 'lucide-react';
+import { Star, Check } from 'lucide-react';
 import { subscriptionApi } from '../utils/api/subscriptions';
 
 interface PremiumDialogProps {
@@ -26,7 +26,7 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
     t('premium.feature2') || 'Advanced reporting',
     t('premium.feature3') || 'Priority support',
     t('premium.feature4') || 'Export to Excel/PDF',
-    t('premium.feature5') || 'Bank account management',
+    t('premium.feature5') || 'Receipt with bank QR code',
   ];
 
   const handlePurchase = async (days: number, period: string) => {
@@ -50,16 +50,7 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 z-[100] h-8 w-8 p-0 rounded-md hover:bg-gray-100"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </Button>
-        <DialogHeader className="pr-8">
+        <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg">
               <Star className="h-6 w-6 text-white" />
