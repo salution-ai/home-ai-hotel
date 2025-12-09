@@ -34,6 +34,7 @@ export interface Payment {
   checkInDate: string;
   checkOutDate: string;
   roomCharge: number;
+  isHourly: boolean;
   services: Service[];
   incidentalCharges: IncidentalCharge[];
   subtotal: number;
@@ -94,7 +95,7 @@ export interface Room {
   status: RoomStatus;
   guest?: {
     name: string;
-    phone: string;
+    phone?: string;
     email?: string;
     checkInDate: string;
     checkOutDate: string;

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room } from '../types';
-import { Menu, Clock, DollarSign, Plus, DoorOpen, Trash2, Layers, Building2, ChevronDown, ChevronUp, HelpCircle, X, Globe } from 'lucide-react';
+import { Menu, Clock, DollarSign, Plus, DoorOpen, Trash2, Layers, Building2, ChevronDown, ChevronUp, HelpCircle, X, Globe, Edit2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -32,10 +32,20 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from './ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { toast } from 'sonner';
 
 export function GuestHouseLiveGrid() {
-  const { user, hotel, rooms, deleteRoom, deleteFloor, deleteBuilding } = useApp();
+  const { user, hotel, rooms, deleteRoom, deleteFloor, deleteBuilding, updateBuilding } = useApp();
   const { language, setLanguage, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -46,6 +56,8 @@ export function GuestHouseLiveGrid() {
   const [revenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'room' | 'floor' | 'building', id: string, name: string, buildingId?: string, floor?: number } | null>(null);
+  const [renameBuilding, setRenameBuilding] = useState<{ id: string, name: string } | null>(null);
+  const [newBuildingName, setNewBuildingName] = useState('');
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [collapsedBuildings, setCollapsedBuildings] = useState<Set<string>>(new Set());
   const [collapsedFloors, setCollapsedFloors] = useState<Set<string>>(new Set());
@@ -119,6 +131,17 @@ export function GuestHouseLiveGrid() {
     return new Intl.NumberFormat('vi-VN').format(amount);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const handleLongPressStart = (room: Room) => {
     const timer = setTimeout(() => {
       if (room.guest) {
@@ -138,6 +161,22 @@ export function GuestHouseLiveGrid() {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
+    }
+  };
+
+  const handleRenameBuilding = async (buildingId: string, newName: string) => {
+    if (!newName.trim()) {
+      toast.error(t('building.nameRequired') || 'Building name is required');
+      return;
+    }
+
+    try {
+      await updateBuilding(buildingId, { name: newName.trim() });
+      toast.success(t('building.renameSuccess') || `Building renamed to "${newName.trim()}"`);
+      setRenameBuilding(null);
+      setNewBuildingName('');
+    } catch (error) {
+      // Error already handled in AppContext
     }
   };
 
@@ -272,11 +311,13 @@ export function GuestHouseLiveGrid() {
               className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setRoomFilter('all')}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-full">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.totalRooms')}</p>
                   <p className="text-2xl sm:text-4xl font-bold text-blue-600">{totalRooms}</p>
-                  {roomFilter === 'all' && <p className="text-[10px] sm:text-xs text-blue-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.showingAll')}</p>}
+                  <div className="min-h-[1.25rem] sm:min-h-[1.5rem]">
+                    {roomFilter === 'all' && <p className="text-[10px] sm:text-xs text-blue-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.showingAll')}</p>}
+                  </div>
                 </div>
                 <DoorOpen className="w-8 h-8 sm:w-12 sm:h-12 text-blue-400 flex-shrink-0 ml-1" />
               </div>
@@ -286,12 +327,17 @@ export function GuestHouseLiveGrid() {
               className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'occupied' ? 'ring-2 ring-green-500' : ''}`}
               onClick={() => setRoomFilter('occupied')}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-full">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.occupied')}</p>
                   <p className="text-2xl sm:text-4xl font-bold text-green-600">{occupiedRooms}</p>
-                  <p className="text-[10px] sm:text-sm text-gray-500 truncate">{t('dashboard.hours')}: {hourlyRooms} | {t('dashboard.days')}: {dailyRooms}</p>
-                  {roomFilter === 'occupied' && <p className="text-[10px] sm:text-xs text-green-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringOccupied')}</p>}
+                  <div className="min-h-[1.25rem] sm:min-h-[1.5rem]">
+                    {roomFilter === 'occupied' ? (
+                      <p className="text-[10px] sm:text-xs text-green-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringOccupied')}</p>
+                    ) : (
+                      <p className="text-[10px] sm:text-sm text-gray-500 truncate">{t('dashboard.hours')}: {hourlyRooms} | {t('dashboard.days')}: {dailyRooms}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -300,11 +346,13 @@ export function GuestHouseLiveGrid() {
               className={`bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-xl transition-all active:scale-95 ${roomFilter === 'vacant' ? 'ring-2 ring-gray-500' : ''}`}
               onClick={() => setRoomFilter('vacant')}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-full">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-lg text-gray-600 truncate">{t('dashboard.vacant')}</p>
                   <p className="text-2xl sm:text-4xl font-bold text-gray-600">{vacantRooms}</p>
-                  {roomFilter === 'vacant' && <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringVacant')}</p>}
+                  <div className="min-h-[1.25rem] sm:min-h-[1.5rem]">
+                    {roomFilter === 'vacant' && <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1 truncate">✓ {t('dashboard.filteringVacant')}</p>}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -313,10 +361,12 @@ export function GuestHouseLiveGrid() {
               className="bg-white/95 backdrop-blur border-0 p-2.5 sm:p-4 cursor-pointer hover:shadow-lg transition-shadow active:scale-95"
               onClick={() => setRevenueDialogOpen(true)}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-full">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-lg text-gray-600 truncate">{t('revenue.title')}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">👆 {t('dashboard.clickToViewDetails')}</p>
+                  <div className="min-h-[1.25rem] sm:min-h-[1.5rem]">
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 truncate">👆 {t('dashboard.clickToViewDetails')}</p>
+                  </div>
                 </div>
                 <DollarSign className="w-8 h-8 sm:w-12 sm:h-12 text-green-400 flex-shrink-0 ml-1" />
               </div>
@@ -348,7 +398,7 @@ export function GuestHouseLiveGrid() {
       </div>
 
       {/* Room Grid */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pt-96 sm:pt-80">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pt-96 sm:pt-80 md:pt-96 lg:pt-[22rem]">
         <div className="space-y-6">
           {(() => {
             // Get all buildings that have rooms, including ones not in hotel.buildings
@@ -406,6 +456,20 @@ export function GuestHouseLiveGrid() {
                       >
                         <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
                         <h2 className="text-white font-medium text-sm sm:text-base truncate">{building.name}</h2>
+                        {/* Rename Building Button */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenameBuilding({ id: building.id, name: building.name });
+                            setNewBuildingName(building.name);
+                          }}
+                          className="text-white hover:text-blue-200 hover:bg-white/20 h-6 w-6 sm:h-7 sm:w-7 p-0 ml-1"
+                          title={t('building.renameTitle') || 'Rename building'}
+                        >
+                          <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        </Button>
                       </div>
                       <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                         <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs px-1.5 sm:px-2 py-0.5 sm:py-1">
@@ -587,10 +651,7 @@ export function GuestHouseLiveGrid() {
                                           <div className="text-xs sm:text-sm">
                                             <p className="font-semibold text-white truncate">{room.guest.name}</p>
                                             <p className="text-[10px] sm:text-xs text-white/90">
-                                              {room.guest.isHourly 
-                                                ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hourly').toLowerCase()}`
-                                                : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
-                                              }
+                                              {t('room.checkout')}: {formatDate(room.guest.checkOutDate)}
                                             </p>
                                           </div>
                                         )}
@@ -761,10 +822,7 @@ export function GuestHouseLiveGrid() {
                                 <div className="text-xs sm:text-sm">
                                   <p className="font-semibold text-white truncate">{room.guest.name}</p>
                                   <p className="text-[10px] sm:text-xs text-white/90">
-                                    {room.guest.isHourly 
-                                      ? `${formatCurrency(room.hourlyRate || 0)}₫/giờ`
-                                      : `${formatCurrency(room.price)}₫/ngày`
-                                    }
+                                    {t('room.checkout')}: {formatDate(room.guest.checkOutDate)}
                                   </p>
                                 </div>
                               )}
@@ -889,6 +947,65 @@ export function GuestHouseLiveGrid() {
         onClose={() => setHelpDialogOpen(false)}
         businessModel="guesthouse"
       />
+
+      {/* Rename Building Dialog */}
+      <Dialog open={!!renameBuilding} onOpenChange={() => {
+        setRenameBuilding(null);
+        setNewBuildingName('');
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-blue-600" />
+              {t('building.renameTitle') || 'Rename Building'}
+            </DialogTitle>
+            <DialogDescription>
+              {t('building.renameDescription') || 'Enter a new name for this building'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="building-rename">{t('building.name') || 'Building Name'}</Label>
+              <Input
+                id="building-rename"
+                value={newBuildingName}
+                onChange={(e) => setNewBuildingName(e.target.value)}
+                placeholder={t('building.namePlaceholder') || 'Enter building name'}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (renameBuilding && newBuildingName.trim()) {
+                      handleRenameBuilding(renameBuilding.id, newBuildingName.trim());
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenameBuilding(null);
+                setNewBuildingName('');
+              }}
+            >
+              {t('delete.cancel') || 'Cancel'}
+            </Button>
+            <Button
+              onClick={() => {
+                if (renameBuilding && newBuildingName.trim()) {
+                  handleRenameBuilding(renameBuilding.id, newBuildingName.trim());
+                }
+              }}
+              disabled={!newBuildingName.trim()}
+            >
+              {t('building.rename') || 'Rename'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

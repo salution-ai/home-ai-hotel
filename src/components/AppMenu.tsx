@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard } from 'lucide-react';
+import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -74,14 +74,8 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto mt-6 space-y-2 pb-4">
-          {/* Subscription Status - Above Room Map */}
+          {/* Subscription Status */}
           <SubscriptionStatus appSlug="guesthouse" className="mb-4" />
-
-          {/* Always visible */}
-          <Button variant="ghost" className="w-full justify-start" onClick={onClose}>
-            <Home className="w-5 h-5 mr-3" />
-            {t('menu.roomMap')}
-          </Button>
 
           {/* Admin only */}
           {isAdmin && (

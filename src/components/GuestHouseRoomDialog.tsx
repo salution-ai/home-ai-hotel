@@ -21,7 +21,6 @@ import {
   LogOut,
   CheckCircle2,
   AlertCircle,
-  Trash2,
   Edit2,
   Save,
   X,
@@ -33,16 +32,16 @@ import {
 import { toast } from 'sonner';
 import { GuestHousePaymentDialog } from './GuestHousePaymentDialog';
 import { useLanguage } from '../contexts/LanguageContext';
+import { MoneyInput } from './MoneyInput';
 
 interface GuestHouseRoomDialogProps {
   room: Room;
   open: boolean;
   onClose: () => void;
-  onDelete?: () => void;
 }
 
-export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHouseRoomDialogProps) {
-  const { updateRoom, user, deleteRoom, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms } = useApp();
+export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDialogProps) {
+  const { updateRoom, user, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms } = useApp();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'info' | 'checkin'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -79,8 +78,9 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       // Reset editing state and sync with room data
       setIsEditing(false);
       setEditedRoomType(room.type);
-      setEditedPrice(room.price.toString());
-      setEditedHourlyRate((room.hourlyRate || 0).toString());
+      // Ensure we pass clean numeric strings to MoneyInput (remove any formatting)
+      setEditedPrice(Math.round(room.price).toString());
+      setEditedHourlyRate(Math.round(room.hourlyRate || 0).toString());
       setEditedStatus(room.status);
       
       // Auto-calculate checkout based on rental type
@@ -103,12 +103,20 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     let checkOut = new Date(checkIn);
     
     if (rentalType === 'hourly') {
-      checkOut.setHours(checkOut.getHours() + parseInt(hours || '3'));
+      // Add hours using milliseconds for accurate calculation
+      const hoursToAdd = parseInt(hours || '3');
+      checkOut.setTime(checkOut.getTime() + (hoursToAdd * 60 * 60 * 1000));
     } else {
       checkOut.setDate(checkOut.getDate() + 1);
     }
     
-    setCheckOutDate(checkOut.toISOString().slice(0, 16));
+    // Format as local datetime for datetime-local input
+    const year = checkOut.getFullYear();
+    const month = String(checkOut.getMonth() + 1).padStart(2, '0');
+    const day = String(checkOut.getDate()).padStart(2, '0');
+    const hoursStr = String(checkOut.getHours()).padStart(2, '0');
+    const minutesStr = String(checkOut.getMinutes()).padStart(2, '0');
+    setCheckOutDate(`${year}-${month}-${day}T${hoursStr}:${minutesStr}`);
   };
 
   const calculateTotal = () => {
@@ -140,8 +148,8 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     
     try {
       await checkIn(room.id, {
-        name: guestName,
-        phone: guestPhone,
+        name: guestName.trim(),
+        phone: guestPhone.trim() || undefined,
         email: '',
         checkInDate: checkInDate,
         checkOutDate: checkOutDate,
@@ -183,11 +191,13 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       // Create payment record before checking out
       const payment: Payment = {
         id: `payment-${Date.now()}`,
+        roomId: currentRoom.id,
         roomNumber: currentRoom.number,
         guestName: currentRoom.guest.name,
         checkInDate: currentRoom.guest.checkInDate,
         checkOutDate: currentRoom.guest.checkOutDate,
         roomCharge: currentRoom.guest.totalAmount,
+        isHourly: currentRoom.guest.isHourly ?? false,
         services: currentRoom.guest.services || [],
         incidentalCharges: currentRoom.guest.incidentalCharges || [],
         subtotal: currentRoom.guest.totalAmount,
@@ -224,23 +234,6 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     }
   };
 
-  const handleDeleteRoom = async () => {
-    if (room.guest) {
-      toast.error(t('room.errorDeleteOccupied'));
-      return;
-    }
-    
-    if (window.confirm(`${t('room.confirmDelete')} ${room.number}?`)) {
-      try {
-        await deleteRoom(room.id);
-        toast.success(`${t('room.deleteSuccess')} ${room.number}`);
-        onClose();
-        if (onDelete) onDelete();
-      } catch (error) {
-        // Error already handled in AppContext
-      }
-    }
-  };
 
   const handleSaveRoomInfo = async () => {
     const price = parseFloat(editedPrice);
@@ -403,7 +396,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                   <Card className={`${getRoomStatusColor()} p-3 border`}>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-sm font-semibold text-gray-800">{t('room.roomInfo')}</h3>
-                      {!isEditing ? (
+                      {!isEditing && room.status !== 'vacant-dirty' && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -413,7 +406,8 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                           <Edit2 className="w-3 h-3 mr-1" />
                           {t('room.edit')}
                         </Button>
-                      ) : (
+                      )}
+                      {isEditing && (
                         <div className="flex gap-1">
                           <Button
                             size="sm"
@@ -536,13 +530,13 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                             <Clock className="w-3 h-3" />
                             {t('room.hourlyPricePerHour')}
                           </Label>
-                          <Input
-                            type="number"
+                          <MoneyInput
+                            id="edit-hourly-rate"
                             value={editedHourlyRate}
-                            onChange={(e) => setEditedHourlyRate(e.target.value)}
-                            className="text-xs h-8"
-                            min="0"
+                            onChange={setEditedHourlyRate}
                             placeholder="0"
+                            className="text-xs h-8"
+                            suffix={`/${t('room.hours').toLowerCase()}`}
                           />
                         </div>
                       ) : (
@@ -552,7 +546,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                             {t('room.hourlyPrice')}
                           </span>
                         <span className="text-sm font-bold text-blue-600">
-                          {formatCurrency(room.hourlyRate || 0)}₫/{t('room.hours').slice(0, -1)}
+                          {formatCurrency(room.hourlyRate || 0)}₫/{t('room.hours').toLowerCase()}
                         </span>
                       </div>
                       )}
@@ -564,13 +558,13 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                             <DollarSign className="w-3 h-3" />
                             {t('room.dailyPricePerDay')}
                           </Label>
-                          <Input
-                            type="number"
+                          <MoneyInput
+                            id="edit-daily-price"
                             value={editedPrice}
-                            onChange={(e) => setEditedPrice(e.target.value)}
-                            className="text-xs h-8"
-                            min="0"
+                            onChange={setEditedPrice}
                             placeholder="0"
+                            className="text-xs h-8"
+                            suffix={`/${t('room.dailyRate').toLowerCase()}`}
                           />
                         </div>
                       ) : (
@@ -580,7 +574,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                             {t('room.dailyPrice')}
                           </span>
                         <span className="text-sm font-bold text-green-600">
-                          {formatCurrency(room.price)}₫/{t('room.daily').toLowerCase()}
+                          {formatCurrency(room.price)}₫/{t('room.dailyRate').toLowerCase()}
                         </span>
                       </div>
                       )}
@@ -597,22 +591,14 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                     </Button>
                   )}
 
-                  <div className="flex gap-2">
+                  {!isEditing && (
                     <Button 
                       onClick={() => setActiveTab('checkin')}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs h-9"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-9"
                     >
                       {t('room.checkinNow')}
                     </Button>
-                    
-                    <Button 
-                      onClick={handleDeleteRoom}
-                      variant="outline"
-                      className="text-xs h-9 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+                  )}
                 </>
               )}
             </TabsContent>
@@ -678,20 +664,51 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                 {/* Hours/Days Selection */}
                 {rentalType === 'hourly' ? (
-                  <Card className="p-2">
-                    <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
-                      {t('room.hoursRental')}
-                    </Label>
-                    <Input
-                      id="hours"
-                      type="number"
-                      value={hours}
-                      onChange={(e) => setHours(e.target.value)}
-                      placeholder="3"
-                      className="text-xs h-8 mt-1"
-                      min="1"
-                      required
-                    />
+                  <Card className="p-2 space-y-2">
+                    <div>
+                      <Label htmlFor="checkInDateHourly" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.checkinDate')}
+                      </Label>
+                      <Input
+                        id="checkInDateHourly"
+                        type="datetime-local"
+                        value={checkInDate}
+                        onChange={(e) => setCheckInDate(e.target.value)}
+                        className="text-xs h-8"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.hoursRental')}
+                      </Label>
+                      <Input
+                        id="hours"
+                        type="number"
+                        value={hours}
+                        onChange={(e) => setHours(e.target.value)}
+                        placeholder="3"
+                        className="text-xs h-8"
+                        min="1"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="checkOutDateHourly" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.checkoutDateExpected')}
+                      </Label>
+                      <Input
+                        id="checkOutDateHourly"
+                        type="datetime-local"
+                        value={checkOutDate}
+                        className="text-xs h-8 bg-gray-50"
+                        readOnly
+                        disabled
+                      />
+                    </div>
+
                     {hours && parseInt(hours) > 0 && (
                       <p className="text-[10px] text-gray-600 mt-1">
                         {formatCurrency((room.hourlyRate || 0) * parseInt(hours || '0'))}₫

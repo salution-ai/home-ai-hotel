@@ -62,7 +62,13 @@ export function MoneyInput({ id, value, onChange, placeholder, className, requir
   // Update display value when value prop changes
   useEffect(() => {
     if (value) {
-      setDisplayValue(formatMoney(value));
+      // Clean the value first to remove any formatting that might have been passed
+      const cleanValue = value.toString().replace(/\D/g, '');
+      if (cleanValue) {
+        setDisplayValue(formatMoney(cleanValue));
+      } else {
+        setDisplayValue('');
+      }
     } else {
       setDisplayValue('');
     }

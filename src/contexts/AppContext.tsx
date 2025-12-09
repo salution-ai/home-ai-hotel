@@ -36,7 +36,7 @@ interface AppContextType {
   updateHotelInfo: (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => Promise<void>;
   updateBankAccount: (bankAccount: { bankName: string; bankCode: string; accountNumber: string; accountHolder: string }) => Promise<void>;
   addPayment: (payment: Payment, roomId?: string) => Promise<void>;
-  clearPaymentsByPeriod: (period: 'today' | 'month' | 'year') => Promise<void>;
+  clearPaymentsByPeriod: (period: 'today' | 'month' | 'year' | 'all') => Promise<void>;
   addRoom: (room: Room) => Promise<void>;
   deleteRoom: (roomId: string) => Promise<void>;
   deleteFloor: (floor: number, buildingId?: string) => Promise<void>;
@@ -888,19 +888,36 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      // Use the returned room data instead of fetching everything
-      const updatedRoom = await roomApi.checkIn(roomId, {
+      // Only send phone if it has a value
+      const checkInPayload: any = {
         name: guestData.name,
-        phone: guestData.phone,
-        email: guestData.email,
+        phone: guestData.phone?.trim() || '',
+        email: guestData.email || '',
         checkInDate: guestData.checkInDate,
         checkOutDate: guestData.checkOutDate,
         totalAmount: guestData.totalAmount,
         isHourly: guestData.isHourly || false,
-        services: guestData.services,
-        incidentalCharges: guestData.incidentalCharges,
         checkedInBy: user?.name || user?.email,
-      });
+      };
+      
+      if (guestData.services) checkInPayload.services = guestData.services;
+      if (guestData.incidentalCharges) checkInPayload.incidentalCharges = guestData.incidentalCharges;
+      
+      // Use the returned room data instead of fetching everything
+      const updatedRoom = await roomApi.checkIn(roomId, checkInPayload);
+      
+      // Verify the room was actually updated
+      if (!updatedRoom) {
+        throw new Error('Check-in failed: No room data returned');
+      }
+      
+      if (!updatedRoom.guest) {
+        throw new Error('Check-in failed: Guest data not found in response');
+      }
+      
+      if (updatedRoom.status !== 'occupied') {
+        throw new Error('Check-in failed: Room status not updated to occupied');
+      }
       
       // Update only the specific room in local state
       setRooms(prev => prev.map(room => 
@@ -909,6 +926,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       
       // No need to refresh hotels, buildings, or staff - they haven't changed
     } catch (error) {
+      console.error('Check-in error:', error);
       const handled = await handleApiError(error);
       if (!handled) {
         throw error;
@@ -1073,7 +1091,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
   };
 
-  const clearPaymentsByPeriod = async (period: 'today' | 'month' | 'year') => {
+  const clearPaymentsByPeriod = async (period: 'today' | 'month' | 'year' | 'all') => {
     if (isGuestMode) {
       const now = new Date();
       let filteredPayments = payments;
@@ -1099,6 +1117,9 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
             const paymentDate = p.timestamp || p.checkInDate;
             return !paymentDate.startsWith(currentYear);
           });
+          break;
+        case 'all':
+          filteredPayments = [];
           break;
       }
       setPayments(filteredPayments);
@@ -1136,6 +1157,9 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
             const paymentDate = p.timestamp || p.checkInDate;
             return !paymentDate.startsWith(currentYear);
           });
+          break;
+        case 'all':
+          filteredPayments = [];
           break;
       }
       

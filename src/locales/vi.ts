@@ -66,6 +66,13 @@ export const vi = {
   'building.main': 'Tòa chính',
   'building.building': 'Tòa',
   'building.deleteTitle': 'Xóa tòa nhà',
+  'building.renameTitle': 'Đổi tên tòa nhà',
+  'building.renameDescription': 'Nhập tên mới cho tòa nhà này',
+  'building.rename': 'Đổi tên',
+  'building.renameSuccess': 'Đã đổi tên tòa nhà thành công',
+  'building.name': 'Tên Tòa Nhà',
+  'building.namePlaceholder': 'Nhập tên tòa nhà',
+  'building.nameRequired': 'Vui lòng nhập tên tòa nhà',
   
   // Floor
   'floor.floor': 'Tầng',
@@ -352,6 +359,7 @@ export const vi = {
   'revenue.today': 'Hôm nay',
   'revenue.month': 'Tháng này',
   'revenue.year': 'Năm nay',
+  'revenue.all': 'Tất cả',
   'revenue.total': 'Tổng',
   'revenue.totalMonth': 'Tổng tháng',
   'revenue.totalYear': 'Tổng năm',
@@ -371,6 +379,9 @@ export const vi = {
   'revenue.freeUserLimit': 'Hiển thị 30 giao dịch mới nhất trong tổng số',
   'revenue.upgradeToViewAll': 'Nâng cấp',
   'revenue.allLoaded': 'Đã hiển thị tất cả',
+  'revenue.clearReports': 'Xóa báo cáo',
+  'revenue.clearReportsDescription': 'Chọn khoảng thời gian bạn muốn xóa:',
+  'revenue.clear': 'Xóa',
   
   // Bank Account Management
   'bank.title': 'Tài khoản Ngân hàng',

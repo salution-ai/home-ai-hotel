@@ -68,6 +68,13 @@ export const en = {
   'building.main': 'Main Building',
   'building.building': 'Building',
   'building.deleteTitle': 'Delete Building',
+  'building.renameTitle': 'Rename Building',
+  'building.renameDescription': 'Enter a new name for this building',
+  'building.rename': 'Rename',
+  'building.renameSuccess': 'Building renamed successfully',
+  'building.name': 'Building Name',
+  'building.namePlaceholder': 'Enter building name',
+  'building.nameRequired': 'Building name is required',
   
   // Floor
   'floor.floor': 'Floor',
@@ -352,6 +359,7 @@ export const en = {
   'revenue.today': 'Today',
   'revenue.month': 'This Month',
   'revenue.year': 'This Year',
+  'revenue.all': 'All',
   'revenue.total': 'Total',
   'revenue.totalMonth': 'Monthly Total',
   'revenue.totalYear': 'Yearly Total',
@@ -371,6 +379,9 @@ export const en = {
   'revenue.freeUserLimit': 'Showing latest 30 of',
   'revenue.upgradeToViewAll': 'Upgrade',
   'revenue.allLoaded': 'Showing all',
+  'revenue.clearReports': 'Clear Reports',
+  'revenue.clearReportsDescription': 'Select the period you want to clear:',
+  'revenue.clear': 'Clear',
   
   // Bank Account Management
   'bank.title': 'Bank Account',

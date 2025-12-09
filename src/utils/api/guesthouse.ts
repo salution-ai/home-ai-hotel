@@ -48,7 +48,7 @@ export interface BackendRoom {
   guest: {
     id: number;
     name: string;
-    phone: string;
+    phone: string | null;
     email: string | null;
     checkInDate: string;
     checkOutDate: string;
@@ -140,7 +140,7 @@ function convertRoom(backend: BackendRoom): Room {
     guest: backend.guest
       ? {
           name: backend.guest.name,
-          phone: backend.guest.phone,
+          phone: backend.guest.phone || undefined,
           email: backend.guest.email || undefined,
           checkInDate: backend.guest.checkInDate,
           checkOutDate: backend.guest.checkOutDate,
@@ -163,6 +163,7 @@ function convertPayment(backend: BackendPayment): Payment {
     checkInDate: backend.checkInDate,
     checkOutDate: backend.checkOutDate,
     roomCharge: backend.roomCharge,
+    isHourly: backend.isHourly,
     services: (backend.services as any) || [],
     incidentalCharges: (backend.incidentalCharges as any) || [],
     subtotal: backend.subtotal,
@@ -302,7 +303,7 @@ export const roomApi = {
 
   checkIn: async (roomId: string, data: {
     name: string;
-    phone: string;
+    phone?: string;
     email?: string;
     checkInDate: string;
     checkOutDate: string;
@@ -312,7 +313,26 @@ export const roomApi = {
     incidentalCharges?: unknown[];
     checkedInBy?: string;
   }): Promise<Room> => {
-    const response = await api.post<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/check-in`, data);
+    // Build payload - phone is optional, send null if not provided
+    const payload: any = {
+      name: data.name.trim(),
+      phone: data.phone?.trim() || null,
+      email: data.email?.trim() || '',
+      checkInDate: data.checkInDate,
+      checkOutDate: data.checkOutDate,
+      totalAmount: data.totalAmount,
+      isHourly: data.isHourly,
+    };
+    if (data.checkedInBy) payload.checkedInBy = data.checkedInBy;
+    if (data.services) payload.services = data.services;
+    if (data.incidentalCharges) payload.incidentalCharges = data.incidentalCharges;
+    
+    const response = await api.post<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/check-in`, payload);
+    
+    if (!response || !response.room) {
+      throw new Error('Invalid response: room data missing');
+    }
+    
     return convertRoom(response.room);
   },
 
@@ -392,7 +412,7 @@ export const paymentApi = {
     return convertPayment(response.payment);
   },
 
-  deleteByPeriod: async (hotelId: string, period: 'today' | 'month' | 'year'): Promise<number> => {
+  deleteByPeriod: async (hotelId: string, period: 'today' | 'month' | 'year' | 'all'): Promise<number> => {
     const response = await api.delete<{ deletedCount: number; message: string }>(
       `/guesthouse/payments?hotelId=${hotelId}&period=${period}`
     );

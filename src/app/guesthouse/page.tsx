@@ -21,7 +21,7 @@ export default function GuestHousePage() {
     <AppProvider defaultBusinessModel="guesthouse">
       <LanguageProvider>
         <GuestHouseAppContent />
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-center" richColors />
       </LanguageProvider>
     </AppProvider>
   )

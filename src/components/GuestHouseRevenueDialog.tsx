@@ -42,11 +42,13 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const { rooms, payments, clearPaymentsByPeriod, hotel } = useApp();
   const { t } = useLanguage();
   const { hasAdvancedReports } = useSubscription({ appSlug: 'guesthouse' });
-  const [activeTab, setActiveTab] = useState<'today' | 'month' | 'year'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'month' | 'year' | 'all'>('today');
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'month' | 'year' | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'month' | 'year' | 'all' | null>(null);
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const [monthVisibleCount, setMonthVisibleCount] = useState(30);
+  const [yearVisibleCount, setYearVisibleCount] = useState(30);
+  const [allVisibleCount, setAllVisibleCount] = useState(30);
 
   // Helper function to get building name from roomId
   const getBuildingName = useCallback((roomId?: string): string => {
@@ -63,22 +65,36 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
     return buildingName ? `${roomNumber}(${buildingName})` : roomNumber;
   }, [getBuildingName]);
 
-  // Handle tab change - show premium dialog if trying to access year tab without premium
+  // Handle tab change - show premium dialog if trying to access year or all tab without premium
   const handleTabChange = (value: string) => {
-    if (value === 'year' && !hasAdvancedReports) {
+    if ((value === 'year' || value === 'all') && !hasAdvancedReports) {
       setShowPremiumDialog(true);
       toast.error(t('export.premiumRequired') || 'This feature requires Premium subscription');
-      return; // Don't allow switching to year tab if not subscribed
+      return; // Don't allow switching to premium tabs if not subscribed
     }
-    setActiveTab(value as 'today' | 'month' | 'year');
-    // Reset month visible count when switching tabs
+    setActiveTab(value as 'today' | 'month' | 'year' | 'all');
+    // Reset visible counts when switching tabs
     if (value !== 'month') {
       setMonthVisibleCount(30);
+    }
+    if (value !== 'year') {
+      setYearVisibleCount(30);
+    }
+    if (value !== 'all') {
+      setAllVisibleCount(30);
     }
   };
 
   const handleLoadMoreMonth = () => {
     setMonthVisibleCount(prev => prev + 30);
+  };
+
+  const handleLoadMoreYear = () => {
+    setYearVisibleCount(prev => prev + 30);
+  };
+
+  const handleLoadMoreAll = () => {
+    setAllVisibleCount(prev => prev + 30);
   };
 
   const handleClearReports = async () => {
@@ -111,7 +127,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
         roomNumber: payment.roomNumber,
         roomDisplayName: roomDisplayName,
         guestName: payment.guestName,
-        isHourly: payment.roomCharge > 0 && payment.checkInDate !== payment.checkOutDate ? false : true, // Simplified check
+        isHourly: payment.isHourly,
         paymentMethod: payment.paymentMethod
       });
     });
@@ -165,27 +181,51 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
     return revenueHistory.filter(r => r.date.startsWith(currentYear));
   }, [revenueHistory, currentYear]);
 
+  // Reset visible count when year changes
+  useEffect(() => {
+    setYearVisibleCount(30);
+  }, [currentYear]);
+
+  // Visible year revenue (lazy loading - show 30 at a time)
+  // Free users are limited to 30 payments only, premium users can load more
+  const visibleYearRevenue = useMemo(() => {
+    if (!hasAdvancedReports) {
+      // Free users: only show latest 30 payments
+      return yearRevenue.slice(0, 30);
+    }
+    // Premium users: show up to yearVisibleCount
+    return yearRevenue.slice(0, yearVisibleCount);
+  }, [yearRevenue, yearVisibleCount, hasAdvancedReports]);
+
+  const hasMoreYearPayments = hasAdvancedReports && yearRevenue.length > yearVisibleCount;
+  const isFreeUserLimitedYear = !hasAdvancedReports && yearRevenue.length > 30;
+
   const yearTotal = yearRevenue.reduce((sum, r) => sum + r.amount, 0);
   const yearHourly = yearRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
   const yearDaily = yearRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
 
-  // Group by month for year view
-  const monthlyBreakdown = useMemo(() => {
-    const breakdown: { [month: string]: { total: number; count: number } } = {};
-    
-    yearRevenue.forEach(r => {
-      const month = r.date.slice(0, 7); // YYYY-MM
-      if (!breakdown[month]) {
-        breakdown[month] = { total: 0, count: 0 };
-      }
-      breakdown[month].total += r.amount;
-      breakdown[month].count += 1;
-    });
+  // All revenue (all payments regardless of date)
+  const allRevenue = useMemo(() => {
+    return revenueHistory;
+  }, [revenueHistory]);
 
-    return Object.entries(breakdown)
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .map(([month, data]) => ({ month, ...data }));
-  }, [yearRevenue]);
+  // Visible all revenue (lazy loading - show 30 at a time)
+  // Free users are limited to 30 payments only, premium users can load more
+  const visibleAllRevenue = useMemo(() => {
+    if (!hasAdvancedReports) {
+      // Free users: only show latest 30 payments
+      return allRevenue.slice(0, 30);
+    }
+    // Premium users: show up to allVisibleCount
+    return allRevenue.slice(0, allVisibleCount);
+  }, [allRevenue, allVisibleCount, hasAdvancedReports]);
+
+  const hasMoreAllPayments = hasAdvancedReports && allRevenue.length > allVisibleCount;
+  const isFreeUserLimitedAll = !hasAdvancedReports && allRevenue.length > 30;
+
+  const allTotal = allRevenue.reduce((sum, r) => sum + r.amount, 0);
+  const allHourly = allRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
+  const allDaily = allRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('vi-VN', {
@@ -220,14 +260,14 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Clear Reports
+                  {t('revenue.clearReports')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Clear Reports</AlertDialogTitle>
+                  <AlertDialogTitle>{t('revenue.clearReports')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Select the period you want to clear:
+                    {t('revenue.clearReportsDescription')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-2 py-4">
@@ -237,7 +277,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                     onClick={() => setSelectedPeriod('today')}
                   >
                     <Clock className="w-4 h-4 mr-2" />
-                    Today
+                    {t('revenue.today')}
                   </Button>
                   <Button
                     variant={selectedPeriod === 'month' ? 'default' : 'outline'}
@@ -245,27 +285,37 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                     onClick={() => setSelectedPeriod('month')}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
-                    This Month
+                    {t('revenue.month')}
                   </Button>
                   {hasAdvancedReports && (
-                    <Button
-                      variant={selectedPeriod === 'year' ? 'default' : 'outline'}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedPeriod('year')}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      This Year
-                    </Button>
+                    <>
+                      <Button
+                        variant={selectedPeriod === 'year' ? 'default' : 'outline'}
+                        className="w-full justify-start"
+                        onClick={() => setSelectedPeriod('year')}
+                      >
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {t('revenue.year')}
+                      </Button>
+                      <Button
+                        variant={selectedPeriod === 'all' ? 'default' : 'outline'}
+                        className="w-full justify-start"
+                        onClick={() => setSelectedPeriod('all')}
+                      >
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {t('revenue.all')}
+                      </Button>
+                    </>
                   )}
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setSelectedPeriod(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setSelectedPeriod(null)}>{t('action.cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleClearReports}
                     disabled={!selectedPeriod}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    Clear
+                    {t('revenue.clear')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -274,7 +324,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="today" className="text-base">
               {t('revenue.today')}
             </TabsTrigger>
@@ -286,6 +336,12 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               className={`text-base ${!hasAdvancedReports ? 'opacity-50' : ''}`}
             >
               {t('revenue.year')}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="all" 
+              className={`text-base ${!hasAdvancedReports ? 'opacity-50' : ''}`}
+            >
+              {t('revenue.all') || 'All'}
             </TabsTrigger>
           </TabsList>
 
@@ -540,26 +596,191 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             </div>
 
             <Card className="p-4">
-              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                {t('revenue.monthlyRevenue')} ({currentYear})
+              <h3 className="font-semibold text-lg mb-3">
+                {t('revenue.monthDetails')} {currentYear}
               </h3>
-              {monthlyBreakdown.length === 0 ? (
+              {yearRevenue.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
               ) : (
-                <div className="space-y-2">
-                  {monthlyBreakdown.map((item) => (
-                    <div key={item.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold">{formatMonth(item.month)}</p>
-                        <p className="text-sm text-gray-600">{item.count} {t('revenue.checkins')}</p>
+                <>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {visibleYearRevenue.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Home className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
+                            <p className="text-sm text-gray-600">{item.guestName}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">
+                            {formatCurrency(item.amount)}₫
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {item.isHourly ? t('room.hourly') : t('room.daily')}
+                          </Badge>
+                        </div>
                       </div>
-                      <p className="text-xl font-bold text-green-600">
-                        {formatCurrency(item.total)}₫
-                      </p>
+                    ))}
+                  </div>
+                  {hasMoreYearPayments && (
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleLoadMoreYear}
+                        className="w-full"
+                      >
+                        {t('revenue.loadMore')} ({yearRevenue.length - yearVisibleCount} remaining)
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                  {isFreeUserLimitedYear && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-center text-sm text-yellow-800 mb-2">
+                        {t('revenue.freeUserLimit')} {yearRevenue.length} {t('revenue.transactions')}
+                      </p>
+                      <Button 
+                        variant="default" 
+                        onClick={() => setShowPremiumDialog(true)}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700"
+                      >
+                        {t('revenue.upgradeToViewAll') || 'Upgrade'}
+                      </Button>
+                    </div>
+                  )}
+                  {!hasMoreYearPayments && !isFreeUserLimitedYear && yearRevenue.length > 30 && (
+                    <p className="text-center text-sm text-gray-500 mt-4">
+                        {t('revenue.allLoaded')} {yearRevenue.length} {t('revenue.transactions')}
+                    </p>
+                  )}
+                </>
+              )}
+            </Card>
+              </>
+            )}
+          </TabsContent>
+
+          {/* All Tab */}
+          <TabsContent value="all" className="space-y-4">
+            {!hasAdvancedReports ? (
+              <Card className="p-8 text-center">
+                <p className="text-gray-500 text-lg">{t('revenue.noRevenueYear')}</p>
+              </Card>
+            ) : (
+              <>
+            {/* Export Buttons */}
+            <ExportReportButtons
+              data={allRevenue.map(r => ({
+                date: r.date,
+                roomNumber: r.roomDisplayName, // Use display name with building
+                guestName: r.guestName,
+                amount: r.amount,
+                type: r.isHourly ? 'Gio' : 'Ngay'
+              }))}
+              reportType="guesthouse"
+              period={t('revenue.all') || 'All'}
+              summary={{ total: allTotal }}
+            />
+
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.total')}</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatCurrency(allTotal)}₫
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {allRevenue.length} {t('revenue.transactions')}
+                </p>
+              </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(allHourly)}₫
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {allRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                </p>
+              </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {formatCurrency(allDaily)}₫
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {allRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                </p>
+              </Card>
+            </div>
+
+            <Card className="p-4">
+              <h3 className="font-semibold text-lg mb-3">
+                {t('revenue.monthDetails')} {t('revenue.all') || 'All'}
+              </h3>
+              {allRevenue.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
+              ) : (
+                <>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {visibleAllRevenue.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Home className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
+                            <p className="text-sm text-gray-600">{item.guestName}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">
+                            {formatCurrency(item.amount)}₫
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {item.isHourly ? t('room.hourly') : t('room.daily')}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {hasMoreAllPayments && (
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleLoadMoreAll}
+                        className="w-full"
+                      >
+                        {t('revenue.loadMore')} ({allRevenue.length - allVisibleCount} remaining)
+                      </Button>
+                    </div>
+                  )}
+                  {isFreeUserLimitedAll && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-center text-sm text-yellow-800 mb-2">
+                        {t('revenue.freeUserLimit')} {allRevenue.length} {t('revenue.transactions')}
+                      </p>
+                      <Button 
+                        variant="default" 
+                        onClick={() => setShowPremiumDialog(true)}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700"
+                      >
+                        {t('revenue.upgradeToViewAll') || 'Upgrade'}
+                      </Button>
+                    </div>
+                  )}
+                  {!hasMoreAllPayments && !isFreeUserLimitedAll && allRevenue.length > 30 && (
+                    <p className="text-center text-sm text-gray-500 mt-4">
+                        {t('revenue.allLoaded')} {allRevenue.length} {t('revenue.transactions')}
+                    </p>
+                  )}
+                </>
               )}
             </Card>
               </>
