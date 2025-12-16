@@ -42,10 +42,10 @@ export const vi = {
 
   // Dashboard
   'dashboard.manage': 'Quản lý',
-  'dashboard.totalRooms': 'Tổng phòng',
+  'dashboard.totalRooms': 'Tổng',
   'dashboard.showingAll': 'Đang hiển thị tất cả',
   'dashboard.occupied': 'Đang thuê',
-  'dashboard.vacant': 'Còn trống',
+  'dashboard.vacant': 'Trống',
   'dashboard.revenueToday': 'Doanh thu hôm nay',
   'dashboard.clickToViewDetails': 'Nhấn để xem chi tiết',
   'dashboard.hours': 'Giờ',
@@ -128,6 +128,10 @@ export const vi = {
   'menu.addStaff': 'Thêm Nhân viên',
   'menu.staffList': 'Danh sách nhân viên',
   'menu.logout': 'Đăng xuất',
+  'menu.logoutConfirmTitle': 'Xác nhận đăng xuất',
+  'menu.logoutConfirmDescription': 'Bạn có chắc chắn muốn đăng xuất?',
+  'menu.logoutConfirm': 'Đăng xuất',
+  'menu.cancel': 'Hủy',
   'menu.hotelConfig': 'Cấu hình Khách sạn',
   'menu.updateHotelInfo': 'Cập nhật tên và địa chỉ khách sạn',
   'menu.hotelName': 'Tên khách sạn',
@@ -146,6 +150,8 @@ export const vi = {
   'menu.phoneNumberPlaceholder': 'VD: 0901234567',
   'menu.email': 'Email',
   'menu.emailPlaceholder': 'VD: hotel@example.com',
+  'menu.collapse': 'Thu gọn menu',
+  'menu.expand': 'Mở rộng menu',
 
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',
@@ -637,6 +643,11 @@ export const vi = {
   'premium.extendSuccess': 'Gia hạn Premium thành công!',
   'premium.remainingDays': 'Còn {days} ngày',
   'premium.extend': 'Gia hạn',
+  'premium.freeTrial': 'Dùng thử miễn phí',
+  'premium.freeTrialDescription': '30 ngày Premium - Một lần cho mỗi người dùng',
+  'premium.activateFreeTrial': 'Kích hoạt dùng thử',
+  'premium.freeTrialActivateSuccess': 'Kích hoạt dùng thử miễn phí thành công!',
+  'premium.freeTrialExtendSuccess': 'Gia hạn dùng thử thêm 30 ngày!',
 
   // Subscription banner
   'subscription.freePlanTitle': 'Gói miễn phí',

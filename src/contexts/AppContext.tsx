@@ -20,6 +20,7 @@ interface AppContextType {
   loading: boolean;
   subscription: Subscription | null;
   isPremium: boolean;
+  hasUsedFreeTrial: boolean;
   setBusinessModel: (model: BusinessModel | null) => void;
   login: (username: string, password: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
@@ -61,6 +62,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   // Subscription state (following CV_Online pattern)
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState<boolean>(true);
   
   // Auth state management (following CV_Online pattern)
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -114,12 +116,24 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
   }, []);
 
+  // Check free trial status
+  const checkFreeTrialStatus = useCallback(async () => {
+    try {
+      const hasUsed = await subscriptionApi.getFreeTrialStatus('guesthouse');
+      setHasUsedFreeTrial(hasUsed);
+    } catch (error) {
+      // On error, default to true (hide button)
+      setHasUsedFreeTrial(true);
+    }
+  }, []);
+
   // Refresh subscription (for use after upgrade)
   const refreshSubscription = useCallback(async () => {
     if (accessToken) {
       await checkSubscription(accessToken);
+      await checkFreeTrialStatus();
     }
-  }, [accessToken, checkSubscription]);
+  }, [accessToken, checkSubscription, checkFreeTrialStatus]);
 
   // Refresh auth state (proactive token refresh)
   const refreshAuth = useCallback(async () => {
@@ -156,7 +170,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       scheduleAccessTokenRefresh(tokens.accessTokenExpiresIn, async () => {
         await refreshAuth();
       });
-      await checkSubscription(tokens.accessToken);
+      // Removed: subscription checks - token refresh is just for maintaining session
+      // Subscription will be checked during initial login and when explicitly refreshed
     } catch (error) {
       clearAccessTokenRefreshTimeout();
       clearAuthState();
@@ -166,7 +181,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       refreshTokenRef.current = null;
       setIsGuestMode(true);
     }
-  }, [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, checkSubscription]);
+  }, [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh]); // Removed checkSubscription and checkFreeTrialStatus from dependencies
 
   // Apply auth success (used after login/signup)
   const applyAuthSuccess = useCallback(
@@ -190,7 +205,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       saveAuthState(authUser, tokens);
       setIsGuestMode(false);
     },
-    [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, refreshAuth, checkSubscription],
+    [clearAccessTokenRefreshTimeout, scheduleAccessTokenRefresh, refreshAuth],
   );
 
   // Load hotel and related data
@@ -370,6 +385,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         
         // Check subscription status (following CV_Online pattern)
         await checkSubscription(stored.accessToken);
+        await checkFreeTrialStatus();
         
         // Clear any localStorage demo data to prevent conflicts
         localStorage.removeItem('hotel-app-hotel');
@@ -465,6 +481,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
             
             // Check subscription status (following CV_Online pattern)
             await checkSubscription(refreshed.tokens.accessToken);
+            await checkFreeTrialStatus();
             
             // Ensure we're in API mode and load data
             setIsGuestMode(false);
@@ -669,6 +686,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       
       // Check subscription status (following CV_Online pattern)
       await checkSubscription(tokens.accessToken);
+      await checkFreeTrialStatus();
       
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
@@ -711,6 +729,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       
       // Check subscription status (following CV_Online pattern)
       await checkSubscription(tokens.accessToken);
+      await checkFreeTrialStatus();
       
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
@@ -751,6 +770,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       applyAuthSuccess(authUser, tokens);
       
       await checkSubscription(tokens.accessToken);
+      await checkFreeTrialStatus();
       
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
@@ -788,6 +808,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       applyAuthSuccess(authUser, tokens);
       
       await checkSubscription(tokens.accessToken);
+      await checkFreeTrialStatus();
       
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
@@ -1457,6 +1478,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         loading,
         subscription,
         isPremium,
+        hasUsedFreeTrial,
         setBusinessModel,
         login,
         signInWithGoogle,

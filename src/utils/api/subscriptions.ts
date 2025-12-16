@@ -38,17 +38,24 @@ export const subscriptionApi = {
     }
   },
 
+  getFreeTrialStatus: async (appSlug: string): Promise<boolean> => {
+    const response = await api.get<{ hasUsedFreeTrial: boolean }>(`/subscriptions/${appSlug}/free-trial-status`);
+    return response.hasUsedFreeTrial;
+  },
+
   create: async (
     appSlug: string,
     planSlug: string,
     durationDays: number,
-    paymentMethod?: string
+    paymentMethod?: string,
+    isFreeTrial?: boolean
   ): Promise<CreateSubscriptionResponse> => {
     const response = await api.post<CreateSubscriptionResponse>('/subscriptions', {
       appSlug,
       planSlug,
       durationDays,
       paymentMethod: paymentMethod || null,
+      isFreeTrial: isFreeTrial || false,
     });
     return response;
   },

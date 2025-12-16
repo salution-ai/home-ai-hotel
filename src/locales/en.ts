@@ -42,9 +42,9 @@ export const en = {
 
   // Dashboard
   'dashboard.manage': 'Manage',
-  'dashboard.totalRooms': 'Total Rooms',
+  'dashboard.totalRooms': 'Total',
   'dashboard.showingAll': 'Currently showing all',
-  'dashboard.occupied': 'Currently Rented',
+  'dashboard.occupied': 'Rented',
   'dashboard.vacant': 'Vacant',
   'dashboard.revenueToday': 'Revenue Today',
   'dashboard.clickToViewDetails': 'Click to view details',
@@ -130,6 +130,10 @@ export const en = {
   'menu.addStaff': 'Add Staff',
   'menu.staffList': 'Staff List',
   'menu.logout': 'Logout',
+  'menu.logoutConfirmTitle': 'Confirm Logout',
+  'menu.logoutConfirmDescription': 'Are you sure you want to log out?',
+  'menu.logoutConfirm': 'Logout',
+  'menu.cancel': 'Cancel',
   'menu.hotelConfig': 'Hotel Configuration',
   'menu.updateHotelInfo': 'Update hotel name and address',
   'menu.hotelName': 'Hotel Name',
@@ -148,6 +152,8 @@ export const en = {
   'menu.phoneNumberPlaceholder': 'e.g., 0901234567',
   'menu.email': 'Email',
   'menu.emailPlaceholder': 'e.g., hotel@example.com',
+  'menu.collapse': 'Collapse menu',
+  'menu.expand': 'Expand menu',
 
   // Add Dialogs
   'add.roomTitle': 'Add New Room',
@@ -637,6 +643,11 @@ export const en = {
   'premium.extendSuccess': 'Premium subscription extended!',
   'premium.remainingDays': '{days} days remaining',
   'premium.extend': 'Extend',
+  'premium.freeTrial': 'Welcome Free Trial',
+  'premium.freeTrialDescription': '30 days of Premium - Once per user',
+  'premium.activateFreeTrial': 'Activate Free Trial',
+  'premium.freeTrialActivateSuccess': 'Welcome Free Trial activated!',
+  'premium.freeTrialExtendSuccess': 'Free trial extended by 30 days!',
 
   // Subscription banner
   'subscription.freePlanTitle': 'Free Plan',

@@ -1,5 +1,6 @@
 import { AppProvider, useApp } from './contexts/AppContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { MenuProvider } from './contexts/MenuContext';
 import { LoginScreen } from './components/LoginScreen';
 import { GuestHouseLiveGrid } from './components/GuestHouseLiveGrid';
 import { Toaster } from './components/ui/sonner';
@@ -31,8 +32,10 @@ export default function GuestHouseApp() {
   return (
     <AppProvider defaultBusinessModel="guesthouse">
       <LanguageProvider>
-        <GuestHouseAppContent />
-        <Toaster position="top-center" richColors />
+        <MenuProvider>
+          <GuestHouseAppContent />
+          <Toaster position="top-center" richColors />
+        </MenuProvider>
       </LanguageProvider>
     </AppProvider>
   );

@@ -1,34 +1,43 @@
 'use client'
 
-import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard } from 'lucide-react';
+import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './ui/sheet';
+import { languages } from '../locales';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { BankAccountManagement } from './BankAccountManagement';
 import { SubscriptionStatus } from './SubscriptionStatus';
+import { GuestHouseRevenueDialog } from './GuestHouseRevenueDialog';
+import { HelpDialog } from './HelpDialog';
+import { useMenu } from '../contexts/MenuContext';
 
 interface AppMenuProps {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
 }
 
 export function AppMenu({ open, onClose }: AppMenuProps) {
   const { user, hotel, logout, addStaff, updateHotelInfo, updateBankAccount } = useApp();
   const { features, isBoardingHouse, isGuestHouse } = useBusinessModel();
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
+  const { isCollapsed, setIsCollapsed } = useMenu();
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showHotelConfig, setShowHotelConfig] = useState(false);
   const [showBankAccount, setShowBankAccount] = useState(false);
+  const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffRole, setStaffRole] = useState<'receptionist' | 'housekeeping'>('receptionist');
@@ -66,62 +75,111 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-[85vw] sm:w-80 flex flex-col">
-        <SheetHeader>
-          <SheetTitle>{hotel?.name}</SheetTitle>
-          <SheetDescription>{t('menu.main')}</SheetDescription>
-        </SheetHeader>
+    <div className={`fixed left-0 top-0 bottom-0 bg-white border-r border-gray-200 flex flex-col z-40 shadow-lg transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64 sm:w-80'}`}>
+      <div className={`p-4 border-b border-gray-200 ${isCollapsed ? 'px-2' : ''} relative`}>
+        {!isCollapsed && (
+          <>
+            <h2 className="font-semibold text-lg pr-8">{hotel?.name}</h2>
+            <p className="text-sm text-gray-500">{t('menu.main')}</p>
+          </>
+        )}
+        {isCollapsed && (
+          <div className="flex flex-col items-center gap-2">
+            {/* Toggle Collapse Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={t('menu.expand')}
+            >
+              <PanelLeft className="w-5 h-5" />
+            </Button>
+            <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{hotel?.name?.[0]?.toUpperCase() || 'H'}</span>
+            </div>
+          </div>
+        )}
+        {!isCollapsed && (
+          /* Toggle Collapse Button */
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-2"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={t('menu.collapse')}
+          >
+            <PanelLeft className="w-5 h-5" />
+          </Button>
+        )}
+      </div>
 
-        <div className="flex-1 overflow-y-auto mt-6 space-y-2 pb-4">
+      <div className={`flex-1 overflow-y-auto space-y-2 ${isCollapsed ? 'p-2' : 'p-4'}`}>
           {/* Subscription Status */}
-          <SubscriptionStatus appSlug="guesthouse" className="mb-4" />
+          {!isCollapsed && <SubscriptionStatus appSlug="guesthouse" className="mb-4" />}
+
+          {!isCollapsed && <Separator className="my-4" />}
+
+          {/* Revenue Report */}
+          <Button 
+            variant="ghost" 
+            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+            onClick={() => {
+              setShowRevenueDialog(true);
+              onClose?.();
+            }}
+            title={isCollapsed ? t('revenue.title') : undefined}
+          >
+            <DollarSign className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && t('revenue.title')}
+          </Button>
 
           {/* Admin only */}
           {isAdmin && (
             <>
-              <Separator className="my-4" />
-
               <Button 
                 variant="ghost" 
-                className="w-full justify-start"
+                className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                 onClick={() => {
                   setShowHotelConfig(true);
-                  onClose();
+                  onClose?.();
                 }}
+                title={isCollapsed ? (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')) : undefined}
               >
-                <Building2 className="w-5 h-5 mr-3" />
-                {isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')}
+                <Building2 className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel'))}
               </Button>
 
               <Button 
                 variant="ghost" 
-                className="w-full justify-start"
+                className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                 onClick={() => {
                   setShowBankAccount(true);
-                  onClose();
+                  onClose?.();
                 }}
+                title={isCollapsed ? t('menu.bankAccount') : undefined}
               >
-                <CreditCard className="w-5 h-5 mr-3" />
-                {t('menu.bankAccount')}
+                <CreditCard className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && t('menu.bankAccount')}
               </Button>
 
               {/* Staff Management - Only for hotels with staff */}
               {features.staffManagement && (
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start"
+                  className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                   onClick={() => {
                     setShowAddStaff(true);
-                    onClose();
+                    onClose?.();
                   }}
+                  title={isCollapsed ? t('menu.addStaff') : undefined}
                 >
-                  <UserPlus className="w-5 h-5 mr-3" />
-                  {t('menu.addStaff')}
+                  <UserPlus className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                  {!isCollapsed && t('menu.addStaff')}
                 </Button>
               )}
 
-              {features.staffManagement && hotel && hotel.staff.length > 0 && (
+              {!isCollapsed && features.staffManagement && hotel && hotel.staff.length > 0 && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     <Users className="w-4 h-4 text-gray-600" />
@@ -142,24 +200,84 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             </>
           )}
 
-          <Separator className="my-4" />
+          {!isCollapsed && <Separator className="my-4" />}
+
+          {/* Language Selector */}
+          {isCollapsed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-center px-0" title={t('header.language')}>
+                  <Globe className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {Object.values(languages).map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => setLanguage(lang.code)}
+                    className={language === lang.code ? 'bg-accent' : ''}
+                  >
+                    <span className="mr-2">{lang.flag}</span>
+                    {lang.name}
+                    {language === lang.code && <span className="ml-auto">✓</span>}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start">
+                  <Globe className="w-5 h-5 mr-3" />
+                  {t('header.language')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {Object.values(languages).map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => setLanguage(lang.code)}
+                    className={language === lang.code ? 'bg-accent' : ''}
+                  >
+                    <span className="mr-2">{lang.flag}</span>
+                    {lang.name}
+                    {language === lang.code && <span className="ml-auto">✓</span>}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* User Guide */}
+          <Button 
+            variant="ghost" 
+            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+            onClick={() => {
+              setShowHelpDialog(true);
+              onClose?.();
+            }}
+            title={isCollapsed ? t('dashboard.helpTitle') : undefined}
+          >
+            <HelpCircle className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && t('dashboard.helpTitle')}
+          </Button>
+
+          {!isCollapsed && <Separator className="my-4" />}
 
           <Button
             variant="ghost"
-            className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-red-600 hover:text-red-700 hover:bg-red-50`}
             onClick={() => {
-              logout();
-              onClose();
+              setShowLogoutConfirm(true);
             }}
+            title={isCollapsed ? t('menu.logout') : undefined}
           >
-            <LogOut className="w-5 h-5 mr-3" />
-            {t('menu.logout')}
+            <LogOut className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && t('menu.logout')}
           </Button>
         </div>
 
-      </SheetContent>
-      
-      {/* All Dialogs outside Sheet to avoid conflicts */}
+      {/* All Dialogs */}
       <Dialog open={showHotelConfig} onOpenChange={setShowHotelConfig}>
         <DialogContent>
           <DialogHeader>
@@ -284,6 +402,43 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         open={showBankAccount} 
         onClose={() => setShowBankAccount(false)} 
       />
-    </Sheet>
+
+      {/* Revenue Dialog */}
+      <GuestHouseRevenueDialog
+        open={showRevenueDialog}
+        onClose={() => setShowRevenueDialog(false)}
+      />
+
+      {/* Help Dialog */}
+      <HelpDialog
+        open={showHelpDialog}
+        onClose={() => setShowHelpDialog(false)}
+        businessModel="guesthouse"
+      />
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('menu.logoutConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('menu.logoutConfirmDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('menu.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                logout();
+                onClose?.();
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {t('menu.logoutConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

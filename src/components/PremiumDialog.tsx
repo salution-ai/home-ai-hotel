@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useApp } from '../contexts/AppContext';
 import { toast } from 'sonner';
 import { Star, Check } from 'lucide-react';
 import { subscriptionApi } from '../utils/api/subscriptions';
@@ -15,6 +16,7 @@ interface PremiumDialogProps {
 
 export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumDialogProps) {
   const { t } = useLanguage();
+  const { hasUsedFreeTrial, refreshSubscription } = useApp();
 
   const pricingPlans = [
     { period: 'month', days: 30, price: 0, label: t('premium.month') || 'Month' },
@@ -43,6 +45,27 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
       onOpenChange(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to upgrade to premium';
+      toast.error(message);
+    }
+  };
+
+  const handleFreeTrial = async () => {
+    try {
+      const response = await subscriptionApi.create('guesthouse', 'premium', 30, undefined, true);
+      
+      if (response.extended) {
+        toast.success(t('premium.freeTrialExtendSuccess') || 'Free trial extended by 30 days!');
+      } else {
+        toast.success(t('premium.freeTrialActivateSuccess') || 'Welcome Free Trial activated!');
+      }
+      
+      // Refresh subscription and free trial status from context
+      await refreshSubscription();
+      
+      onUpgradeSuccess?.();
+      onOpenChange(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to activate free trial';
       toast.error(message);
     }
   };
@@ -77,6 +100,26 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
             </ul>
           </div>
 
+          {/* Free Trial Button */}
+          {!hasUsedFreeTrial && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-300">
+              <div className="text-center mb-4">
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {t('premium.freeTrial') || 'Welcome Free Trial'}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {t('premium.freeTrialDescription') || '30 days of Premium - Once per user'}
+                </div>
+              </div>
+              <Button
+                onClick={handleFreeTrial}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold"
+              >
+                {t('premium.activateFreeTrial') || 'Activate Free Trial'}
+              </Button>
+            </div>
+          )}
+
           {/* Pricing Plans */}
           <div>
             <h3 className="font-semibold mb-4 text-gray-900">
@@ -86,7 +129,7 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
               {pricingPlans.map((plan) => (
                 <div
                   key={plan.period}
-                  className="border-2 border-gray-200 rounded-lg p-4 hover:border-yellow-400 transition-all hover:shadow-lg"
+                  className="border-2 border-gray-200 rounded-lg p-4 opacity-60"
                 >
                   <div className="text-center mb-4">
                     <div className="text-2xl font-bold text-gray-900 mb-1">
@@ -97,8 +140,8 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
                     </div>
                   </div>
                   <Button
-                    onClick={() => handlePurchase(plan.days, plan.label)}
-                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold"
+                    disabled
+                    className="w-full bg-gray-300 text-gray-500 font-semibold cursor-not-allowed"
                   >
                     {t('premium.select') || 'Select'}
                   </Button>
