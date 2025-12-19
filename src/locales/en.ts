@@ -154,8 +154,17 @@ export const en = {
   'menu.emailPlaceholder': 'e.g., hotel@example.com',
   'menu.collapse': 'Collapse menu',
   'menu.expand': 'Expand menu',
-  'menu.downloadApp': 'Download App',
-  'menu.pwaAlreadyInstalled': 'App is already installed or not supported by this browser.',
+  'menu.downloadPwa': 'Download Desktop App',
+
+  'pwa.installTitle': 'Install Desktop App',
+  'pwa.installDescription': 'Install our app for a faster and smoother experience on your computer.',
+  'pwa.windowsTitle': 'For Windows',
+  'pwa.windowsChrome': 'On **Google Chrome**: Click the **Install** icon in the address bar (at the right side).',
+  'pwa.windowsEdge': 'On **Microsoft Edge**: Click the **App available** icon in the address bar.',
+  'pwa.macTitle': 'For macOS',
+  'pwa.macSafari': 'On **Safari**: Click **File** > **Add to Dock...**',
+  'pwa.macChrome': 'On **Google Chrome**: Click the **Install** icon in the address bar.',
+  'pwa.close': 'Got it',
 
   // Add Dialogs
   'add.roomTitle': 'Add New Room',

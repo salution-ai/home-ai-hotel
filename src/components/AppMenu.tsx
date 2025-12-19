@@ -1,6 +1,6 @@
 'use client'
 
-import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft, DownloadCloud } from 'lucide-react';
+import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft, Download } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -38,7 +38,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallPwaDialog, setShowInstallPwaDialog] = useState(false);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffRole, setStaffRole] = useState<'receptionist' | 'housekeeping'>('receptionist');
@@ -60,44 +60,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       setEmail(hotel.email || '');
     }
   }, [hotel]);
-
-  const [isStandalone, setIsStandalone] = useState(false);
-
-  useEffect(() => {
-    // Check if app is already running as standalone
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
-      setIsStandalone(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check if event already happened or listen for it
-    const handler = (e: any) => {
-      console.log('✅ PWA: Install prompt captured');
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // If the event already fired before mount, some browsers keep it
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      toast.info(t('menu.pwaAlreadyInstalled'));
-      return;
-    }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`PWA: User choice was ${outcome}`);
-    setDeferredPrompt(null);
-  };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,18 +265,18 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
 
         {!isCollapsed && <Separator className="my-4" />}
 
-        {/* Download App Button - Show only if not already running as an app */}
-        {!isStandalone && (
-          <Button
-            variant="ghost"
-            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}
-            onClick={handleInstallClick}
-            title={isCollapsed ? t('menu.downloadApp') : undefined}
-          >
-            <DownloadCloud className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            {!isCollapsed && t('menu.downloadApp')}
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}
+          onClick={() => {
+            setShowInstallPwaDialog(true);
+            onClose?.();
+          }}
+          title={isCollapsed ? t('menu.downloadPwa') : undefined}
+        >
+          <Download className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && t('menu.downloadPwa')}
+        </Button>
 
         <Button
           variant="ghost"
@@ -467,6 +429,49 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         onClose={() => setShowHelpDialog(false)}
         businessModel="guesthouse"
       />
+
+      {/* PWA Installation Instructions Dialog */}
+      <Dialog open={showInstallPwaDialog} onOpenChange={setShowInstallPwaDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-blue-500" />
+              {t('pwa.installTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pwa.installDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-sm">🪟</span>
+                {t('pwa.windowsTitle')}
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-600 pl-8">
+                <li dangerouslySetInnerHTML={{ __html: t('pwa.windowsChrome') }} />
+                <li dangerouslySetInnerHTML={{ __html: t('pwa.windowsEdge') }} />
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <span className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-sm">🍎</span>
+                {t('pwa.macTitle')}
+              </h4>
+              <ul className="space-y-2 text-sm text-gray-600 pl-8">
+                <li dangerouslySetInnerHTML={{ __html: t('pwa.macSafari') }} />
+                <li dangerouslySetInnerHTML={{ __html: t('pwa.macChrome') }} />
+              </ul>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowInstallPwaDialog(false)}>
+              {t('pwa.close')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>

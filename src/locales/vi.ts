@@ -152,8 +152,17 @@ export const vi = {
   'menu.emailPlaceholder': 'VD: hotel@example.com',
   'menu.collapse': 'Thu gọn menu',
   'menu.expand': 'Mở rộng menu',
-  'menu.downloadApp': 'Tải ứng dụng',
-  'menu.pwaAlreadyInstalled': 'Ứng dụng đã được cài đặt hoặc trình duyệt không hỗ trợ.',
+  'menu.downloadPwa': 'Tải ứng dụng máy tính',
+
+  'pwa.installTitle': 'Cài đặt ứng dụng máy tính',
+  'pwa.installDescription': 'Cài đặt ứng dụng của chúng tôi để có trải nghiệm nhanh hơn và mượt mà hơn trên máy tính của bạn.',
+  'pwa.windowsTitle': 'Dành cho Windows',
+  'pwa.windowsChrome': 'Trên **Google Chrome**: Nhấp vào biểu tượng **Cài đặt** ở thanh địa chỉ (phía bên phải).',
+  'pwa.windowsEdge': 'Trên **Microsoft Edge**: Nhấp vào biểu tượng **Sẵn có ứng dụng** ở thanh địa chỉ.',
+  'pwa.macTitle': 'Dành cho macOS',
+  'pwa.macSafari': 'Trên **Safari**: Nhấp vào **Tệp** (File) > **Thêm vào Dock...** (Add to Dock...)',
+  'pwa.macChrome': 'Trên **Google Chrome**: Nhấp vào biểu tượng **Cài đặt** ở thanh địa chỉ.',
+  'pwa.close': 'Đã hiểu',
 
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',
