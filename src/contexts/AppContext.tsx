@@ -7,7 +7,7 @@ import { getFeatures } from '../utils/businessModelFeatures';
 import { hotelApi, buildingApi, roomApi, paymentApi, staffApi } from '../utils/api/guesthouse';
 import { authApi } from '../utils/api/auth';
 import { ApiClientError } from '../utils/api';
-import { saveAuthState, loadAuthState, clearAuthState, migrateOldTokens, type AuthUser, type AuthTokens } from '../utils/auth';
+import { saveAuthState, loadAuthState, clearAuthState, migrateOldTokens, getRefreshToken, type AuthUser, type AuthTokens } from '../utils/auth';
 import { subscriptionApi, type Subscription } from '../utils/api/subscriptions';
 import { toast } from 'sonner';
 
@@ -58,12 +58,12 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   const [businessModel, setBusinessModelState] = useState<BusinessModel | null>(defaultBusinessModel || null);
   const [loading, setLoading] = useState(true);
   const [isGuestMode, setIsGuestMode] = useState(false);
-  
+
   // Subscription state (following CV_Online pattern)
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState<boolean>(true);
-  
+
   // Auth state management (following CV_Online pattern)
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [accessTokenExpiry, setAccessTokenExpiry] = useState<number | null>(null);
@@ -137,7 +137,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   // Refresh auth state (proactive token refresh)
   const refreshAuth = useCallback(async () => {
-    const activeRefreshToken = refreshTokenRef.current;
+    // Always read from storage to handle race conditions with api.ts reactive refresh
+    const activeRefreshToken = getRefreshToken();
     if (!activeRefreshToken) {
       clearAccessTokenRefreshTimeout();
       setAccessToken(null);
@@ -224,7 +225,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       let hotelData = await hotelApi.get();
-      
+
       // If no hotel exists, create one automatically with name "My Hotel"
       if (!hotelData) {
         try {
@@ -274,12 +275,12 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         hotelId: hotelData.id,
         hotelName: hotelData.name,
       } : null);
-      
+
       // Ensure we're in API mode after successful load
       setIsGuestMode(false);
     } catch (error) {
       console.error('Failed to load hotel data:', error);
-      
+
       // Handle rate limiting - show warning but don't clear data
       if (error instanceof ApiClientError && error.statusCode === 429) {
         const { handleRateLimitError } = await import('../utils/rateLimitHandler');
@@ -289,7 +290,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         isLoadingHotelRef.current = false;
         return;
       }
-      
+
       if (error instanceof ApiClientError && error.statusCode === 401) {
         // Unauthorized - clear auth tokens and reset state
         localStorage.removeItem('accessToken');
@@ -313,21 +314,21 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       return;
     }
     isInitializedRef.current = true;
-    
+
     let active = true;
 
     const initialiseAuth = async () => {
       // Migrate old tokens to new format
       migrateOldTokens();
-      
+
       const stored = loadAuthState();
       if (!stored.accessToken || !stored.refreshToken) {
         // Check for legacy localStorage mode
         const savedHotel = localStorage.getItem('hotel-app-hotel');
         const savedUser = localStorage.getItem('hotel-app-user');
-        
+
         if (!active) return;
-        
+
         if (savedHotel && savedUser) {
           // Legacy localStorage mode
           setIsGuestMode(true);
@@ -371,30 +372,30 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           hotelId: '',
           hotelName: '',
         };
-        
+
         // Batch state updates to prevent multiple re-renders
         setUser(authenticatedUser);
         setAccessToken(stored.accessToken);
         setAccessTokenExpiry(Date.now() + 14 * 60 * 1000); // Assume 14 min expiry
         setIsGuestMode(false);
-        
+
         clearAccessTokenRefreshTimeout();
         scheduleAccessTokenRefresh(14 * 60, async () => {
           await refreshAuth();
         });
-        
+
         // Check subscription status (following CV_Online pattern)
         await checkSubscription(stored.accessToken);
         await checkFreeTrialStatus();
-        
+
         // Clear any localStorage demo data to prevent conflicts
         localStorage.removeItem('hotel-app-hotel');
         localStorage.removeItem('hotel-app-user');
         localStorage.removeItem('hotel-app-rooms');
-        
+
         // Load hotel data - auto-create if doesn't exist
         let hotelData = await hotelApi.get();
-        
+
         if (!hotelData) {
           // Auto-create hotel with name "My Hotel"
           try {
@@ -421,7 +422,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
             return;
           }
         }
-        
+
         // Load all hotel data
         const [buildings, staff, roomsData, paymentsData] = await Promise.all([
           buildingApi.getAll(hotelData.id),
@@ -429,19 +430,19 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           roomApi.getAll(hotelData.id),
           paymentApi.getAllPaginated(hotelData.id),
         ]);
-        
+
         hotelData.buildings = buildings;
         hotelData.staff = staff;
         setHotel(hotelData);
         setRooms(roomsData);
         setPayments(paymentsData);
-        
+
         setUser(prev => prev ? {
           ...prev,
           hotelId: hotelData.id,
           hotelName: hotelData.name,
         } : null);
-        
+
       } catch {
         // Profile check failed, try to refresh
         if (!stored.refreshToken) {
@@ -478,11 +479,11 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
             scheduleAccessTokenRefresh(refreshed.tokens.accessTokenExpiresIn, async () => {
               await refreshAuth();
             });
-            
+
             // Check subscription status (following CV_Online pattern)
             await checkSubscription(refreshed.tokens.accessToken);
             await checkFreeTrialStatus();
-            
+
             // Ensure we're in API mode and load data
             setIsGuestMode(false);
             await loadHotelData(authenticatedUser);
@@ -500,7 +501,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           }
         }
       }
-      
+
       if (active) {
         setLoading(false);
       }
@@ -542,7 +543,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         return true; // Error was handled
       } else {
         toast.error(error.message || defaultMessage || 'An error occurred');
-        return true; // Error was handled
+        return false; // Let the caller know it failed
       }
     }
     return false; // Not an ApiClientError
@@ -575,35 +576,35 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   const setupHotel = async (hotelName: string, adminEmail: string, adminName: string, model: BusinessModel) => {
     if (isGuestMode) {
       // Legacy localStorage mode
-    const features = getFeatures(model);
-    const buildings = features.multiBuilding
-      ? [
-            { id: 'building-1', name: 'Tòa A', description: 'Tòa chính', order: 1 },
-            { id: 'building-2', name: 'Tòa B', description: 'Tòa phụ', order: 2 },
-          ]
+      const features = getFeatures(model);
+      const buildings = features.multiBuilding
+        ? [
+          { id: 'building-1', name: 'Tòa A', description: 'Tòa chính', order: 1 },
+          { id: 'building-2', name: 'Tòa B', description: 'Tòa phụ', order: 2 },
+        ]
         : [{ id: 'building-1', name: 'Tòa chính', description: 'Tòa chính', order: 1 }];
 
-    const newHotel: Hotel = {
-      id: Date.now().toString(),
-      name: hotelName,
-      adminEmail,
-      businessModel: model,
-      buildings,
+      const newHotel: Hotel = {
+        id: Date.now().toString(),
+        name: hotelName,
+        adminEmail,
+        businessModel: model,
+        buildings,
         staff: [],
-    };
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: adminEmail,
-      name: adminName,
-      role: 'admin',
-      hotelId: newHotel.id,
-      hotelName: newHotel.name,
-    };
-    
-    setHotel(newHotel);
-    setUser(newUser);
-    setBusinessModelState(model);
+      };
+
+      const newUser: User = {
+        id: Date.now().toString(),
+        email: adminEmail,
+        name: adminName,
+        role: 'admin',
+        hotelId: newHotel.id,
+        hotelName: newHotel.name,
+      };
+
+      setHotel(newHotel);
+      setUser(newUser);
+      setBusinessModelState(model);
       return;
     }
 
@@ -627,11 +628,11 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
       setHotel(hotelData);
       setBusinessModelState(model);
-      
+
       // Hotel and building are already set, just initialize empty arrays
       setRooms([]);
       setPayments([]);
-      
+
       // No need to refresh - we already have all the data
     } catch (error) {
       const handled = await handleApiError(error, 'Failed to create hotel');
@@ -683,16 +684,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     try {
       const { user: authUser, tokens } = await authApi.login({ username, password });
       applyAuthSuccess(authUser, tokens);
-      
+
       // Check subscription status (following CV_Online pattern)
       await checkSubscription(tokens.accessToken);
       await checkFreeTrialStatus();
-      
+
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
       localStorage.removeItem('hotel-app-rooms');
-      
+
       const authenticatedUser: User = {
         id: authUser.id.toString(),
         email: authUser.username,
@@ -726,16 +727,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setLoading(true);
       const { user: authUser, tokens } = await authApi.googleAuth({ idToken });
       applyAuthSuccess(authUser, tokens);
-      
+
       // Check subscription status (following CV_Online pattern)
       await checkSubscription(tokens.accessToken);
       await checkFreeTrialStatus();
-      
+
       // Clear any localStorage demo data to prevent conflicts
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
       localStorage.removeItem('hotel-app-rooms');
-      
+
       const authenticatedUser: User = {
         id: authUser.id.toString(),
         email: authUser.username,
@@ -768,14 +769,14 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setLoading(true);
       const { user: authUser, tokens } = await authApi.facebookAuth({ accessToken });
       applyAuthSuccess(authUser, tokens);
-      
+
       await checkSubscription(tokens.accessToken);
       await checkFreeTrialStatus();
-      
+
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
       localStorage.removeItem('hotel-app-rooms');
-      
+
       const authenticatedUser: User = {
         id: authUser.id.toString(),
         email: authUser.username,
@@ -806,14 +807,14 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setLoading(true);
       const { user: authUser, tokens } = await authApi.appleAuth({ idToken });
       applyAuthSuccess(authUser, tokens);
-      
+
       await checkSubscription(tokens.accessToken);
       await checkFreeTrialStatus();
-      
+
       localStorage.removeItem('hotel-app-hotel');
       localStorage.removeItem('hotel-app-user');
       localStorage.removeItem('hotel-app-rooms');
-      
+
       const authenticatedUser: User = {
         id: authUser.id.toString(),
         email: authUser.username,
@@ -859,7 +860,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const updateRoom = async (roomId: string, updates: Partial<Room>) => {
     if (isGuestMode) {
-      setRooms(prev => prev.map(room => 
+      setRooms(prev => prev.map(room =>
         room.id === roomId ? { ...room, ...updates } : room
       ));
       return;
@@ -877,15 +878,15 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         apiUpdates.roomNumber = updates.number;
         delete apiUpdates.number;
       }
-      
+
       // Use the returned room data instead of fetching everything
       const updatedRoom = await roomApi.update(roomId, apiUpdates);
-      
+
       // Update only the specific room in local state
-      setRooms(prev => prev.map(room => 
+      setRooms(prev => prev.map(room =>
         room.id === roomId ? updatedRoom : room
       ));
-      
+
       // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
       const handled = await handleApiError(error);
@@ -897,14 +898,14 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const checkIn = async (roomId: string, guestData: any) => {
     if (isGuestMode) {
-    updateRoom(roomId, {
-      status: 'occupied',
-      guest: {
-        ...guestData,
+      updateRoom(roomId, {
+        status: 'occupied',
+        guest: {
+          ...guestData,
           checkedInBy: user?.email || user?.name,
-      },
-      booking: undefined,
-    });
+        },
+        booking: undefined,
+      });
       return;
     }
 
@@ -920,31 +921,31 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         isHourly: guestData.isHourly || false,
         checkedInBy: user?.name || user?.email,
       };
-      
+
       if (guestData.services) checkInPayload.services = guestData.services;
       if (guestData.incidentalCharges) checkInPayload.incidentalCharges = guestData.incidentalCharges;
-      
+
       // Use the returned room data instead of fetching everything
       const updatedRoom = await roomApi.checkIn(roomId, checkInPayload);
-      
+
       // Verify the room was actually updated
       if (!updatedRoom) {
         throw new Error('Check-in failed: No room data returned');
       }
-      
+
       if (!updatedRoom.guest) {
         throw new Error('Check-in failed: Guest data not found in response');
       }
-      
+
       if (updatedRoom.status !== 'occupied') {
         throw new Error('Check-in failed: Room status not updated to occupied');
       }
-      
+
       // Update only the specific room in local state
-      setRooms(prev => prev.map(room => 
+      setRooms(prev => prev.map(room =>
         room.id === roomId ? updatedRoom : room
       ));
-      
+
       // No need to refresh hotels, buildings, or staff - they haven't changed
     } catch (error) {
       console.error('Check-in error:', error);
@@ -957,22 +958,22 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const checkOut = async (roomId: string) => {
     if (isGuestMode) {
-    updateRoom(roomId, {
-      status: 'vacant-dirty',
-      guest: undefined,
-    });
+      updateRoom(roomId, {
+        status: 'vacant-dirty',
+        guest: undefined,
+      });
       return;
     }
 
     try {
       // Use the returned room data instead of fetching everything
       const updatedRoom = await roomApi.checkOut(roomId);
-      
+
       // Update only the specific room in local state
-      setRooms(prev => prev.map(room => 
+      setRooms(prev => prev.map(room =>
         room.id === roomId ? updatedRoom : room
       ));
-      
+
       // No need to refresh hotels, buildings, or staff - they haven't changed
       // Payments are created separately via addPayment, so no need to refresh here
     } catch (error) {
@@ -992,12 +993,12 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     try {
       // Use the returned room data instead of fetching everything
       const updatedRoom = await roomApi.markCleaned(roomId);
-      
+
       // Update only the specific room in local state
-      setRooms(prev => prev.map(room => 
+      setRooms(prev => prev.map(room =>
         room.id === roomId ? updatedRoom : room
       ));
-      
+
       // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
       const handled = await handleApiError(error);
@@ -1009,7 +1010,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const addStaff = async (email: string, name: string, role: 'receptionist' | 'housekeeping') => {
     if (!hotel) return;
-    
+
     if (isGuestMode) {
       const newStaff = { id: Date.now().toString(), email, name, role };
       setHotel({ ...hotel, staff: [...hotel.staff, newStaff] });
@@ -1019,13 +1020,13 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     try {
       // Use the returned staff data instead of fetching everything
       const newStaff = await staffApi.create({ hotelId: hotel.id, email, name, role });
-      
+
       // Add the new staff to local state
       setHotel(prev => prev ? {
         ...prev,
         staff: [...prev.staff, newStaff]
       } : null);
-      
+
       // No need to refresh hotels, buildings, rooms, or payments - they haven't changed
     } catch (error) {
       if (error instanceof ApiClientError) {
@@ -1049,7 +1050,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       if (roomId) {
         // First try to find room in local state
         room = rooms.find(r => r.id === roomId);
-        
+
         // Only fetch from backend if:
         // 1. Room not found in local state, OR
         // 2. Room found but doesn't have guest data (might be stale)
@@ -1074,7 +1075,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       }
 
       // Use room.guest.isHourly if available, otherwise use simplified calculation
-      const isHourly = room.guest?.isHourly ?? 
+      const isHourly = room.guest?.isHourly ??
         (payment.roomCharge > 0 && payment.checkInDate !== payment.checkOutDate ? false : true);
 
       // Use the returned payment data instead of fetching everything
@@ -1099,10 +1100,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         companyAddress: payment.companyAddress,
         processedBy: payment.processedBy,
       });
-      
+
       // Add the new payment to local state (prepend since it's the most recent)
       setPayments(prev => [createdPayment, ...prev]);
-      
+
       // No need to refresh hotels, buildings, staff, or rooms - they haven't changed
     } catch (error) {
       const handled = await handleApiError(error);
@@ -1152,11 +1153,11 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       const deletedCount = await paymentApi.deleteByPeriod(hotel.id, period);
-      
+
       // Filter payments locally based on period instead of fetching everything
       const now = new Date();
       let filteredPayments = payments;
-      
+
       switch (period) {
         case 'today':
           const today = now.toISOString().split('T')[0];
@@ -1183,10 +1184,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           filteredPayments = [];
           break;
       }
-      
+
       setPayments(filteredPayments);
       toast.success(`Đã xóa ${deletedCount} bản ghi thanh toán`);
-      
+
       // No need to refresh hotels, buildings, staff, or rooms - they haven't changed
     } catch (error) {
       const handled = await handleApiError(error);
@@ -1198,7 +1199,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const addRoom = async (room: Room) => {
     if (isGuestMode) {
-    setRooms(prev => [...prev, room]);
+      setRooms(prev => [...prev, room]);
       return;
     }
 
@@ -1216,7 +1217,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       // Ensure hotel.id and buildingId are valid
       const hotelId = hotel.id;
       const buildingId = room.buildingId;
-      
+
       if (!hotelId || !buildingId) {
         toast.error('Hotel ID and Building ID are required');
         return;
@@ -1233,10 +1234,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         hourlyRate: room.hourlyRate,
         status: room.status,
       });
-      
+
       // Add the new room to local state
       setRooms(prev => [...prev, createdRoom]);
-      
+
       // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
       if (error instanceof ApiClientError && error.statusCode === 404) {
@@ -1261,10 +1262,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       await roomApi.delete(roomId);
-      
+
       // Remove the room from local state
       setRooms(prev => prev.filter(r => r.id !== roomId));
-      
+
       // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
       const handled = await handleApiError(error);
@@ -1277,10 +1278,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   const deleteFloor = async (floor: number, buildingId?: string) => {
     if (isGuestMode) {
       setRooms(prev => prev.filter(r => {
-      if (r.floor !== floor) return true;
-      if (buildingId && r.buildingId !== buildingId) return true;
-      return false;
-    }));
+        if (r.floor !== floor) return true;
+        if (buildingId && r.buildingId !== buildingId) return true;
+        return false;
+      }));
       return;
     }
 
@@ -1300,18 +1301,18 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         console.error(`Failed to delete room ${room.id}:`, error);
       }
     }
-    
+
     // Remove deleted rooms from local state
     setRooms(prev => prev.filter(r => !roomIdsToDelete.includes(r.id)));
-    
+
     // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
   const bulkUpdateRoomPrices = async (roomIds: string[], price: number) => {
     if (isGuestMode) {
-    setRooms(prev => prev.map(room => 
-      roomIds.includes(room.id) ? { ...room, price } : room
-    ));
+      setRooms(prev => prev.map(room =>
+        roomIds.includes(room.id) ? { ...room, price } : room
+      ));
       return;
     }
 
@@ -1325,13 +1326,13 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         console.error(`Failed to update room ${roomId}:`, error);
       }
     }
-    
+
     // Update local state with all successfully updated rooms
     setRooms(prev => prev.map(room => {
       const updated = updatedRooms.find(u => u.id === room.id);
       return updated || room;
     }));
-    
+
     // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
@@ -1406,12 +1407,12 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     if (!hotel) return;
 
     if (isGuestMode) {
-    setHotel({
-      ...hotel,
-      buildings: hotel.buildings.map(b =>
-        b.id === buildingId ? { ...b, ...updates } : b
-      ),
-    });
+      setHotel({
+        ...hotel,
+        buildings: hotel.buildings.map(b =>
+          b.id === buildingId ? { ...b, ...updates } : b
+        ),
+      });
       return;
     }
 
@@ -1435,29 +1436,29 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
   const deleteBuilding = async (buildingId: string) => {
     if (!hotel) return;
-    
+
     if (isGuestMode) {
-    const hasRooms = rooms.some(r => r.buildingId === buildingId);
-    if (hasRooms) {
+      const hasRooms = rooms.some(r => r.buildingId === buildingId);
+      if (hasRooms) {
         toast.error('Không thể xóa tòa nhà đang có phòng. Vui lòng xóa hoặc chuyển phòng sang tòa khác trước.');
-      return;
-    }
-    setHotel({
-      ...hotel,
-      buildings: hotel.buildings.filter(b => b.id !== buildingId),
-    });
+        return;
+      }
+      setHotel({
+        ...hotel,
+        buildings: hotel.buildings.filter(b => b.id !== buildingId),
+      });
       return;
     }
 
     try {
       await buildingApi.delete(buildingId);
-      
+
       // Remove the building from local state
       setHotel(prev => prev ? {
         ...prev,
         buildings: prev.buildings.filter(b => b.id !== buildingId)
       } : null);
-      
+
       // No need to refresh hotels, rooms, staff, or payments - only buildings changed
     } catch (error) {
       const handled = await handleApiError(error);

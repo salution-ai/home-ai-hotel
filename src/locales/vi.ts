@@ -152,6 +152,8 @@ export const vi = {
   'menu.emailPlaceholder': 'VD: hotel@example.com',
   'menu.collapse': 'Thu gọn menu',
   'menu.expand': 'Mở rộng menu',
+  'menu.downloadApp': 'Tải ứng dụng',
+  'menu.pwaAlreadyInstalled': 'Ứng dụng đã được cài đặt hoặc trình duyệt không hỗ trợ.',
 
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',

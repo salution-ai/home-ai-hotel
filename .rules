@@ -1,0 +1,14 @@
+# Project Context: Hotel Management System
+
+## Project Structure
+- `src/`: Next.js Web Frontend.
+- `backend/`: Express.js Backend.
+- `mobile/`: React Native migrated from `src/`.
+
+## Tech Stack
+- **Frontend**: Next.js, Radix UI, Tailwind CSS, TypeScript.
+- **Backend**: Express.js, TypeScript, MySQL (located in `backend/`).
+
+## Rules & Preferences
+- If the chat open with web app, it will focus on the Web Frontend.
+- If the chat open with mobile app, it will focus on the Mobile App.

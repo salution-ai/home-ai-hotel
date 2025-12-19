@@ -1,6 +1,6 @@
 'use client'
 
-import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft } from 'lucide-react';
+import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft, DownloadCloud } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -38,6 +38,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [staffName, setStaffName] = useState('');
   const [staffEmail, setStaffEmail] = useState('');
   const [staffRole, setStaffRole] = useState<'receptionist' | 'housekeeping'>('receptionist');
@@ -59,6 +60,44 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       setEmail(hotel.email || '');
     }
   }, [hotel]);
+
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Check if app is already running as standalone
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsStandalone(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Check if event already happened or listen for it
+    const handler = (e: any) => {
+      console.log('✅ PWA: Install prompt captured');
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // If the event already fired before mount, some browsers keep it
+    if ((window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast.info(t('menu.pwaAlreadyInstalled'));
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA: User choice was ${outcome}`);
+    setDeferredPrompt(null);
+  };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,167 +154,180 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       </div>
 
       <div className={`flex-1 overflow-y-auto space-y-2 ${isCollapsed ? 'p-2' : 'p-4'}`}>
-          {/* Subscription Status */}
-          {!isCollapsed && <SubscriptionStatus appSlug="guesthouse" className="mb-4" />}
+        {/* Subscription Status */}
+        {!isCollapsed && <SubscriptionStatus appSlug="guesthouse" className="mb-4" />}
 
-          {!isCollapsed && <Separator className="my-4" />}
+        {!isCollapsed && <Separator className="my-4" />}
 
-          {/* Revenue Report */}
-          <Button 
-            variant="ghost" 
-            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
-            onClick={() => {
-              setShowRevenueDialog(true);
-              onClose?.();
-            }}
-            title={isCollapsed ? t('revenue.title') : undefined}
-          >
-            <DollarSign className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            {!isCollapsed && t('revenue.title')}
-          </Button>
+        {/* Revenue Report */}
+        <Button
+          variant="ghost"
+          className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+          onClick={() => {
+            setShowRevenueDialog(true);
+            onClose?.();
+          }}
+          title={isCollapsed ? t('revenue.title') : undefined}
+        >
+          <DollarSign className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && t('revenue.title')}
+        </Button>
 
-          {/* Admin only */}
-          {isAdmin && (
-            <>
-              <Button 
-                variant="ghost" 
+        {/* Admin only */}
+        {isAdmin && (
+          <>
+            <Button
+              variant="ghost"
+              className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+              onClick={() => {
+                setShowHotelConfig(true);
+                onClose?.();
+              }}
+              title={isCollapsed ? (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')) : undefined}
+            >
+              <Building2 className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel'))}
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+              onClick={() => {
+                setShowBankAccount(true);
+                onClose?.();
+              }}
+              title={isCollapsed ? t('menu.bankAccount') : undefined}
+            >
+              <CreditCard className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && t('menu.bankAccount')}
+            </Button>
+
+            {/* Staff Management - Only for hotels with staff */}
+            {features.staffManagement && (
+              <Button
+                variant="ghost"
                 className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                 onClick={() => {
-                  setShowHotelConfig(true);
+                  setShowAddStaff(true);
                   onClose?.();
                 }}
-                title={isCollapsed ? (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')) : undefined}
+                title={isCollapsed ? t('menu.addStaff') : undefined}
               >
-                <Building2 className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-                {!isCollapsed && (isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel'))}
+                <UserPlus className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && t('menu.addStaff')}
               </Button>
+            )}
 
-              <Button 
-                variant="ghost" 
-                className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
-                onClick={() => {
-                  setShowBankAccount(true);
-                  onClose?.();
-                }}
-                title={isCollapsed ? t('menu.bankAccount') : undefined}
-              >
-                <CreditCard className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-                {!isCollapsed && t('menu.bankAccount')}
-              </Button>
-
-              {/* Staff Management - Only for hotels with staff */}
-              {features.staffManagement && (
-                <Button 
-                  variant="ghost" 
-                  className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
-                  onClick={() => {
-                    setShowAddStaff(true);
-                    onClose?.();
-                  }}
-                  title={isCollapsed ? t('menu.addStaff') : undefined}
-                >
-                  <UserPlus className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-                  {!isCollapsed && t('menu.addStaff')}
-                </Button>
-              )}
-
-              {!isCollapsed && features.staffManagement && hotel && hotel.staff.length > 0 && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-900">{t('menu.staffList')}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {hotel.staff.map((s) => (
-                      <div key={s.id} className="text-xs">
-                        <p className="text-gray-900">{s.name}</p>
-                        <p className="text-gray-500">
-                          {s.email} • {s.role === 'receptionist' ? t('header.receptionist') : t('header.housekeeping')}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+            {!isCollapsed && features.staffManagement && hotel && hotel.staff.length > 0 && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-900">{t('menu.staffList')}</span>
                 </div>
-              )}
-            </>
-          )}
+                <div className="space-y-2">
+                  {hotel.staff.map((s) => (
+                    <div key={s.id} className="text-xs">
+                      <p className="text-gray-900">{s.name}</p>
+                      <p className="text-gray-500">
+                        {s.email} • {s.role === 'receptionist' ? t('header.receptionist') : t('header.housekeeping')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
-          {!isCollapsed && <Separator className="my-4" />}
+        {!isCollapsed && <Separator className="my-4" />}
 
-          {/* Language Selector */}
-          {isCollapsed ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-center px-0" title={t('header.language')}>
-                  <Globe className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {Object.values(languages).map((lang) => (
-                  <DropdownMenuItem
-                    key={lang.code}
-                    onClick={() => setLanguage(lang.code)}
-                    className={language === lang.code ? 'bg-accent' : ''}
-                  >
-                    <span className="mr-2">{lang.flag}</span>
-                    {lang.name}
-                    {language === lang.code && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start">
-                  <Globe className="w-5 h-5 mr-3" />
-                  {t('header.language')}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {Object.values(languages).map((lang) => (
-                  <DropdownMenuItem
-                    key={lang.code}
-                    onClick={() => setLanguage(lang.code)}
-                    className={language === lang.code ? 'bg-accent' : ''}
-                  >
-                    <span className="mr-2">{lang.flag}</span>
-                    {lang.name}
-                    {language === lang.code && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+        {/* Language Selector */}
+        {isCollapsed ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-center px-0" title={t('header.language')}>
+                <Globe className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {Object.values(languages).map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={language === lang.code ? 'bg-accent' : ''}
+                >
+                  <span className="mr-2">{lang.flag}</span>
+                  {lang.name}
+                  {language === lang.code && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start">
+                <Globe className="w-5 h-5 mr-3" />
+                {t('header.language')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {Object.values(languages).map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={language === lang.code ? 'bg-accent' : ''}
+                >
+                  <span className="mr-2">{lang.flag}</span>
+                  {lang.name}
+                  {language === lang.code && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
-          {/* User Guide */}
-          <Button 
-            variant="ghost" 
-            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
-            onClick={() => {
-              setShowHelpDialog(true);
-              onClose?.();
-            }}
-            title={isCollapsed ? t('dashboard.helpTitle') : undefined}
-          >
-            <HelpCircle className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            {!isCollapsed && t('dashboard.helpTitle')}
-          </Button>
+        {/* User Guide */}
+        <Button
+          variant="ghost"
+          className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+          onClick={() => {
+            setShowHelpDialog(true);
+            onClose?.();
+          }}
+          title={isCollapsed ? t('dashboard.helpTitle') : undefined}
+        >
+          <HelpCircle className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && t('dashboard.helpTitle')}
+        </Button>
 
-          {!isCollapsed && <Separator className="my-4" />}
+        {!isCollapsed && <Separator className="my-4" />}
 
+        {/* Download App Button - Show only if not already running as an app */}
+        {!isStandalone && (
           <Button
             variant="ghost"
-            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-red-600 hover:text-red-700 hover:bg-red-50`}
-            onClick={() => {
-              setShowLogoutConfirm(true);
-            }}
-            title={isCollapsed ? t('menu.logout') : undefined}
+            className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}
+            onClick={handleInstallClick}
+            title={isCollapsed ? t('menu.downloadApp') : undefined}
           >
-            <LogOut className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            {!isCollapsed && t('menu.logout')}
+            <DownloadCloud className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && t('menu.downloadApp')}
           </Button>
-        </div>
+        )}
+
+        <Button
+          variant="ghost"
+          className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'} text-red-600 hover:text-red-700 hover:bg-red-50`}
+          onClick={() => {
+            setShowLogoutConfirm(true);
+          }}
+          title={isCollapsed ? t('menu.logout') : undefined}
+        >
+          <LogOut className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && t('menu.logout')}
+        </Button>
+      </div>
 
       {/* All Dialogs */}
       <Dialog open={showHotelConfig} onOpenChange={setShowHotelConfig}>
@@ -283,7 +335,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
           <DialogHeader>
             <DialogTitle>{t('menu.hotelConfig')}</DialogTitle>
           </DialogHeader>
-          <form 
+          <form
             onSubmit={async (e) => {
               e.preventDefault();
               try {
@@ -293,7 +345,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               } catch (error) {
                 // Error already handled in AppContext
               }
-            }} 
+            }}
             className="space-y-4"
           >
             <div>
@@ -398,9 +450,9 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       </Dialog>
 
       {/* Bank Account Management Dialog */}
-      <BankAccountManagement 
-        open={showBankAccount} 
-        onClose={() => setShowBankAccount(false)} 
+      <BankAccountManagement
+        open={showBankAccount}
+        onClose={() => setShowBankAccount(false)}
       />
 
       {/* Revenue Dialog */}

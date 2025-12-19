@@ -154,6 +154,8 @@ export const en = {
   'menu.emailPlaceholder': 'e.g., hotel@example.com',
   'menu.collapse': 'Collapse menu',
   'menu.expand': 'Expand menu',
+  'menu.downloadApp': 'Download App',
+  'menu.pwaAlreadyInstalled': 'App is already installed or not supported by this browser.',
 
   // Add Dialogs
   'add.roomTitle': 'Add New Room',
