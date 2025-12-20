@@ -1285,27 +1285,23 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       return;
     }
 
-    // In API mode, delete rooms individually
-    const roomsToDelete = rooms.filter(r => {
-      if (r.floor !== floor) return false;
-      if (buildingId && r.buildingId !== buildingId) return false;
-      return true;
-    });
+    if (!hotel) return;
 
-    const roomIdsToDelete = roomsToDelete.map(r => r.id);
+    try {
+      await roomApi.deleteFloor(hotel.id, floor, buildingId);
 
-    for (const room of roomsToDelete) {
-      try {
-        await roomApi.delete(room.id);
-      } catch (error) {
-        console.error(`Failed to delete room ${room.id}:`, error);
+      // Remove deleted rooms from local state
+      setRooms(prev => prev.filter(r => {
+        if (r.floor !== floor) return true;
+        if (buildingId && r.buildingId !== buildingId) return true;
+        return false;
+      }));
+    } catch (error) {
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
     }
-
-    // Remove deleted rooms from local state
-    setRooms(prev => prev.filter(r => !roomIdsToDelete.includes(r.id)));
-
-    // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
   const bulkUpdateRoomPrices = async (roomIds: string[], price: number) => {

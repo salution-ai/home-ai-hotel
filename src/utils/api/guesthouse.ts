@@ -106,11 +106,11 @@ function convertHotel(backend: BackendHotel): Hotel {
     staff: [], // Will be loaded separately
     bankAccount: backend.bankName
       ? {
-          bankName: backend.bankName,
-          bankCode: backend.bankCode || '',
-          accountNumber: backend.accountNumber || '',
-          accountHolder: backend.accountHolder || '',
-        }
+        bankName: backend.bankName,
+        bankCode: backend.bankCode || '',
+        accountNumber: backend.accountNumber || '',
+        accountHolder: backend.accountHolder || '',
+      }
       : undefined,
     taxCode: backend.taxCode || undefined,
     phoneNumber: backend.phoneNumber || undefined,
@@ -139,17 +139,17 @@ function convertRoom(backend: BackendRoom): Room {
     status: backend.status,
     guest: backend.guest
       ? {
-          name: backend.guest.name,
-          phone: backend.guest.phone || undefined,
-          email: backend.guest.email || undefined,
-          checkInDate: backend.guest.checkInDate,
-          checkOutDate: backend.guest.checkOutDate,
-          totalAmount: backend.guest.totalAmount,
-          services: backend.guest.services as any,
-          incidentalCharges: backend.guest.incidentalCharges as any,
-          checkedInBy: backend.guest.checkedInBy || undefined,
-          isHourly: backend.guest.isHourly,
-        }
+        name: backend.guest.name,
+        phone: backend.guest.phone || undefined,
+        email: backend.guest.email || undefined,
+        checkInDate: backend.guest.checkInDate,
+        checkOutDate: backend.guest.checkOutDate,
+        totalAmount: backend.guest.totalAmount,
+        services: backend.guest.services as any,
+        incidentalCharges: backend.guest.incidentalCharges as any,
+        checkedInBy: backend.guest.checkedInBy || undefined,
+        isHourly: backend.guest.isHourly,
+      }
       : undefined,
   };
 }
@@ -301,6 +301,14 @@ export const roomApi = {
     await api.delete(`/guesthouse/rooms/${roomId}`);
   },
 
+  deleteFloor: async (hotelId: string, floor: number, buildingId?: string): Promise<void> => {
+    let url = `/guesthouse/rooms-floor?hotelId=${hotelId}&floor=${floor}`;
+    if (buildingId) {
+      url += `&buildingId=${buildingId}`;
+    }
+    await api.delete(url);
+  },
+
   checkIn: async (roomId: string, data: {
     name: string;
     phone?: string;
@@ -326,13 +334,13 @@ export const roomApi = {
     if (data.checkedInBy) payload.checkedInBy = data.checkedInBy;
     if (data.services) payload.services = data.services;
     if (data.incidentalCharges) payload.incidentalCharges = data.incidentalCharges;
-    
+
     const response = await api.post<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/check-in`, payload);
-    
+
     if (!response || !response.room) {
       throw new Error('Invalid response: room data missing');
     }
-    
+
     return convertRoom(response.room);
   },
 
@@ -378,7 +386,7 @@ export const paymentApi = {
 
     while (hasMore) {
       const payments = await getAllPayments(hotelId, pageSize, offset);
-      
+
       if (payments.length === 0) {
         hasMore = false;
       } else {

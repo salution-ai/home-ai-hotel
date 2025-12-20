@@ -59,7 +59,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
   const [guestPhone, setGuestPhone] = useState('');
   const [rentalType, setRentalType] = useState<'hourly' | 'daily'>('daily');
   const [hours, setHours] = useState('3');
-  const [checkInDate, setCheckInDate] = useState(new Date().toISOString().slice(0, 16));
+  const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -140,6 +140,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         // Reset form for new check-in
         setGuestName('');
         setGuestPhone('');
+        setCheckInDate(toDateTimeLocal(new Date().toISOString()));
       }
 
       // Reset editing state and sync with room data
