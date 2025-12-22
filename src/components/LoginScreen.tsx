@@ -357,7 +357,7 @@ export function LoginScreen() {
           <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Hotel className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-gray-900 mb-2">Live Grid Hotel</h1>
+          <h1 className="text-gray-900 mb-2">Guest House Online</h1>
           <p className="text-gray-500">{t('login.tagline')}</p>
           {modelInfo && businessModel && (
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
@@ -369,6 +369,7 @@ export function LoginScreen() {
 
         {/* Login Options */}
         <div className="mt-8 space-y-3">
+          {/* 
           <Button
             type="button"
             className="w-full"
@@ -378,6 +379,7 @@ export function LoginScreen() {
           >
             {t('login.login') || 'Login'}
           </Button>
+          */}
 
           {/* Hidden Google button container (used as fallback) */}
           <div
@@ -417,6 +419,7 @@ export function LoginScreen() {
           </Button>
 
           {/* Facebook Sign In Button */}
+          {/* 
           <Button
             type="button"
             variant="outline"
@@ -430,8 +433,10 @@ export function LoginScreen() {
             </svg>
             {t('login.loginWithFacebook') || 'Login with Facebook'}
           </Button>
+          */}
 
           {/* Apple Sign In Button */}
+          {/* 
           <Button
             type="button"
             variant="outline"
@@ -445,6 +450,7 @@ export function LoginScreen() {
             </svg>
             {t('login.loginWithApple') || 'Login with Apple'}
           </Button>
+          */}
 
           <Button
             type="button"

@@ -1,6 +1,6 @@
 {
-    "name": "Hotel Management System",
-    "short_name": "HMS",
+    "name": "Guest House Online",
+    "short_name": "GHO",
     "description": "Comprehensive Hotel & Guest House Management System",
     "start_url": "/",
     "display": "standalone",
