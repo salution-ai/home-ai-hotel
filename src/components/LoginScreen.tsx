@@ -369,7 +369,8 @@ export function LoginScreen() {
 
         {/* Login Options */}
         <div className="mt-8 space-y-3">
-          {
+          {/* Regular Login - Commented out for simplified login flow */}
+          {/* 
             <Button
               type="button"
               className="w-full"
@@ -379,7 +380,7 @@ export function LoginScreen() {
             >
               {t('login.login') || 'Login'}
             </Button>
-          }
+          */}
 
           {/* Hidden Google button container (used as fallback) */}
           <div
@@ -480,7 +481,8 @@ export function LoginScreen() {
         </div>
       </Card>
 
-      {/* Login Dialog */}
+      {/* Login Dialog - Commented out for simplified login flow */}
+      {/* 
       <Dialog open={showLogin} onOpenChange={setShowLogin}>
         <DialogContent>
           <DialogHeader>
@@ -516,6 +518,7 @@ export function LoginScreen() {
           </form>
         </DialogContent>
       </Dialog>
+      */}
 
       {/* Setup Hotel Dialog */}
       <Dialog open={showSetup} onOpenChange={setShowSetup}>
