@@ -12,6 +12,7 @@ import { businessModelInfo } from '../utils/businessModelFeatures';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
 import { languages } from '../locales';
+import { authApi } from '../utils/api/auth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,12 @@ export function LoginScreen() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isGoogleReady, setIsGoogleReady] = useState(false);
   const [hiddenGoogleButtonRef, setHiddenGoogleButtonRef] = useState<HTMLDivElement | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
+  const [registerName, setRegisterName] = useState('');
+  const [registerUsername, setRegisterUsername] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Load Google Identity Services script
   useEffect(() => {
@@ -318,6 +325,41 @@ export function LoginScreen() {
     }
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerName || !registerUsername || !registerPassword || !registerConfirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    if (registerPassword !== registerConfirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setIsRegistering(true);
+    try {
+      // Register the user via API
+      await authApi.register({
+        fullName: registerName,
+        username: registerUsername,
+        password: registerPassword,
+      });
+
+      // Auto login after successful registration
+      await login(registerUsername, registerPassword);
+      setShowRegister(false);
+      setRegisterName('');
+      setRegisterUsername('');
+      setRegisterPassword('');
+      setRegisterConfirmPassword('');
+      toast.success(t('login.registerSuccess') || 'Registration successful!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      toast.error(message);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   // Get business model info for display
   const modelInfo = businessModel ? businessModelInfo[businessModel] : null;
 
@@ -369,7 +411,7 @@ export function LoginScreen() {
 
         {/* Login Options */}
         <div className="mt-8 space-y-3">
-          {/*
+          {
             <Button
               type="button"
               className="w-full"
@@ -379,7 +421,7 @@ export function LoginScreen() {
             >
               {t('login.login') || 'Login'}
             </Button>
-          */}
+          }
 
           {/* Hidden Google button container (used as fallback) */}
           <div
@@ -462,6 +504,17 @@ export function LoginScreen() {
           >
             {t('login.guestMode')}
           </Button>
+
+          {/* Register Link */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowRegister(true)}
+              className="text-sm text-gray-600 hover:text-blue-600 hover:underline transition-colors"
+            >
+              {t('login.noAccount') || "Don't have an account?"} <span className="font-medium text-blue-600">{t('login.register') || 'Register'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="mt-8 text-center">
@@ -512,6 +565,77 @@ export function LoginScreen() {
             </div>
             <Button type="submit" className="w-full" disabled={isLoggingIn}>
               {isLoggingIn ? 'Logging in...' : 'Login'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Register Dialog */}
+      <Dialog open={showRegister} onOpenChange={setShowRegister}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('login.registerTitle') || 'Create Account'}</DialogTitle>
+            <DialogDescription>
+              {t('login.registerDescription') || 'Create a new account to get started'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRegister} className="space-y-4" autoComplete="off">
+            <div>
+              <Label htmlFor="register-name">{t('login.fullName') || 'Full Name'}</Label>
+              <Input
+                id="register-name"
+                name="register-fullname"
+                placeholder={t('login.fullNamePlaceholder') || 'Enter your full name'}
+                value={registerName}
+                onChange={(e) => setRegisterName(e.target.value)}
+                required
+                disabled={isRegistering}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <Label htmlFor="register-username">{t('login.username') || 'Username'}</Label>
+              <Input
+                id="register-username"
+                name="register-new-username"
+                placeholder={t('login.usernamePlaceholder') || 'Enter your username'}
+                value={registerUsername}
+                onChange={(e) => setRegisterUsername(e.target.value)}
+                required
+                disabled={isRegistering}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <Label htmlFor="register-password">{t('login.password') || 'Password'}</Label>
+              <Input
+                id="register-password"
+                name="register-new-password"
+                type="password"
+                placeholder={t('login.passwordPlaceholder') || 'Enter your password'}
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                required
+                disabled={isRegistering}
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="register-confirm-password">{t('login.confirmPassword') || 'Confirm Password'}</Label>
+              <Input
+                id="register-confirm-password"
+                name="register-confirm-new-password"
+                type="password"
+                placeholder={t('login.confirmPasswordPlaceholder') || 'Re-enter your password'}
+                value={registerConfirmPassword}
+                onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                required
+                disabled={isRegistering}
+                autoComplete="new-password"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isRegistering}>
+              {isRegistering ? (t('login.registering') || 'Registering...') : (t('login.register') || 'Register')}
             </Button>
           </form>
         </DialogContent>
